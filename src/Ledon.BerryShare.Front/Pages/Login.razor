@@ -1,0 +1,64 @@
+@using Ledon.BerryShare.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@inject Ledon.BerryShare.Front.Services.ApiService ApiService
+@inject Ledon.BerryShare.Front.Services.ITokenProvider TokenProvider
+@inject NavigationManager NavigationManager
+@inject Ledon.BerryShare.Front.Services.ToastService ToastService
+
+<div class="login-bg">
+    <div class="login-card animate-card">
+        <h3 class="login-title">login</h3>
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-group">
+                <label class="form-label">账号：</label>
+                <InputText @bind-Value="loginModel.UserName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">密码：</label>
+                <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+            </div>
+            <button type="button" class="btn btn-primary w-100 mt-3" @onclick="HandleLogin">登录</button>
+        </EditForm>
+    </div>
+</div>
+@code {
+    private LoginModel loginModel = new();
+    private string? errorMsg;
+
+    private class LoginModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMsg = null;
+        try
+        {
+            var result = await ApiService.PostAsync<BerryResult<LoginResult>>("/api/auth/login",
+            loginModel);
+            if (result != null && !string.IsNullOrEmpty(result.Data?.Token))
+            {
+                await TokenProvider.SetTokenAsync(result.Data.Token);
+                await ToastService.ShowToastAsync("登录成功！", Ledon.BerryShare.Front.Services.ToastType.Info);
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                await ToastService.ShowToastAsync("登录失败，用户名或密码错误。", Ledon.BerryShare.Front.Services.ToastType.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToastAsync("登录异常：" + ex.Message, Ledon.BerryShare.Front.Services.ToastType.Error);
+        }
+    }
+
+    private class LoginResult
+    {
+        public string Token { get; set; } = string.Empty;
+    }
+}

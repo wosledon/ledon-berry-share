@@ -1,0 +1,43 @@
+@inject Ledon.BerryShare.Front.Services.ToastService ToastService
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="toast-container">
+        <div class="toast-message @typeClass" @onclick="HideToast">
+            @message
+        </div>
+    </div>
+}
+
+@code {
+    private string? message;
+    private string typeClass = "info";
+    private System.Timers.Timer? timer;
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    private Task ShowToast(string msg, Ledon.BerryShare.Front.Services.ToastType type)
+    {
+        message = msg;
+        typeClass = type.ToString().ToLower();
+        StateHasChanged();
+        timer?.Dispose();
+        timer = new System.Timers.Timer(2500);
+        timer.Elapsed += (s, e) => HideToast();
+        timer.AutoReset = false;
+        timer.Start();
+
+        return Task.CompletedTask;
+    }
+
+    private void HideToast()
+    {
+        message = null;
+        typeClass = "info";
+        timer?.Dispose();
+        InvokeAsync(StateHasChanged);
+    }
+}

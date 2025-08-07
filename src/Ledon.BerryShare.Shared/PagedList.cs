@@ -20,3 +20,29 @@ public class PagedList<T> : List<T>
         PageSize = pageSize;
     }
 }
+
+public class BerryResult
+{
+    public enum StatusCodeEnum
+    {
+        Success = 200,
+        Error = 500,
+        NotFound = 404,
+        BadRequest = 400,
+        Unauthorized = 401
+    }
+
+    public StatusCodeEnum Code { get; set; } = StatusCodeEnum.Success;
+    public string Message { get; set; } = string.Empty;
+    public object? Data { get; set; } = null;
+
+    public BerryResult() { }
+}
+
+
+public class BerryResult<T> : BerryResult
+    where T : new()
+{
+    public new T Data { get; set; } = new T();
+}
+

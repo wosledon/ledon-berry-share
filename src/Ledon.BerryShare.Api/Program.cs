@@ -8,7 +8,8 @@ using Ledon.BerryShare.Api.Controllers;
 using Ledon.BerryShare.Api.Middlewares;
 using Scalar.AspNetCore;
 using Ledon.BerryShare.Api.Extensions;
-// ...existing code...
+using Ledon.BerryShare.Shared;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // EF Core Sqlite & 懒加载代理
@@ -61,7 +62,6 @@ builder.Services.AddScoped<UnitOfWork>();
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionMiddleware>();
 
 // init database
 using (var scope = app.Services.CreateScope())
@@ -75,7 +75,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference();
     app.MapOpenApi();
+
+    app.UseWebAssemblyDebugging();
 }
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 
@@ -86,23 +90,11 @@ app.UseStaticFiles();
 
 // 自定义认证失败响应中间件
 app.UseAuthentication();
-app.Use(async (context, next) =>
-{
-    await next();
-    if (context.Response.StatusCode == 401)
-    {
-        context.Response.StatusCode = 200;
-        context.Response.ContentType = "application/json";
-        var result = System.Text.Json.JsonSerializer.Serialize(new BerryResult
-        {
-            Code = BerryResult.StatusCodeEnum.Unauthorized,
-            Message = "未授权访问"
-        });
-        await context.Response.WriteAsync(result);
-    }
-});
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

@@ -1,4 +1,5 @@
 using System;
+using Ledon.BerryShare.Shared;
 using Ledon.BerryShare.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -54,7 +55,7 @@ public class ApiControllerBase : ControllerBase
     [NonAction]
     public IActionResult BerryError(string message = "请求失败", object? data = null)
     {
-        return BadRequest(new BerryResult
+        return Ok(new BerryResult
         {
             Code = BerryResult.StatusCodeEnum.Error,
             Message = message,
@@ -65,7 +66,7 @@ public class ApiControllerBase : ControllerBase
     [NonAction]
     public IActionResult BerryNotFound(string message = "资源未找到", object? data = null)
     {
-        return NotFound(new BerryResult
+        return Ok(new BerryResult
         {
             Code = BerryResult.StatusCodeEnum.NotFound,
             Message = message,
@@ -76,36 +77,11 @@ public class ApiControllerBase : ControllerBase
     [NonAction]
     public IActionResult BerryUnauthorized(string message = "未授权", object? data = null)
     { 
-        return Unauthorized(new BerryResult
+        return Ok(new BerryResult
         {
             Code = BerryResult.StatusCodeEnum.Unauthorized,
             Message = message,
             Data = data
         });
     }
-}
-
-public class BerryResult
-{
-    public enum StatusCodeEnum
-    {
-        Success = 200,
-        Error = 500,
-        NotFound = 404,
-        BadRequest = 400,
-        Unauthorized = 401
-    }
-
-    public StatusCodeEnum Code { get; set; } = StatusCodeEnum.Success;
-    public string Message { get; set; } = string.Empty;
-    public object? Data { get; set; } = null;
-
-    public BerryResult() { }
-}
-
-
-public class BerryResult<T> : BerryResult
-    where T : new()
-{
-    public new T Data { get; set; } = new T();
 }
