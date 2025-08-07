@@ -2,9 +2,12 @@
 
 @if (!string.IsNullOrEmpty(message))
 {
-    <div class="toast-container">
-        <div class="toast-message @typeClass" @onclick="HideToast">
-            @message
+    <div class="toast show align-items-center border-0 position-fixed top-0 start-50 translate-middle-x mt-4 @GetBgClass()" style="z-index:1055; min-width:300px; border-radius:0.75rem; box-shadow:0 4px 16px rgba(0,0,0,0.12);" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex w-100 align-items-center">
+            <div class="flex-grow-1 px-3 py-2 text-center" style="font-size:1rem;">
+                @message
+            </div>
+            @* <button type="button" class="btn-close btn-close-white me-3" style="filter:none;" @onclick="HideToast" aria-label="Close"></button> *@
         </div>
     </div>
 }
@@ -39,5 +42,17 @@
         typeClass = "info";
         timer?.Dispose();
         InvokeAsync(StateHasChanged);
+    }
+
+    private string GetBgClass()
+    {
+        return typeClass switch
+        {
+            "info" => "bg-info text-white",
+            "success" => "bg-success text-white",
+            "error" => "bg-danger text-white",
+            "warn" => "bg-warning text-dark",
+            _ => "bg-secondary text-white"
+        };
     }
 }
