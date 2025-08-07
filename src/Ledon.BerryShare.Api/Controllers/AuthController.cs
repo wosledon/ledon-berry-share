@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Ledon.BerryShare.Api.Services;
-using System.Threading.Tasks;
 using Ledon.BerryShare.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
 
