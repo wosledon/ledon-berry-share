@@ -1,0 +1,6 @@
+@Ledon.BerryShare.Api_HostAddress = http://localhost:5252
+
+GET {{Ledon.BerryShare.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
