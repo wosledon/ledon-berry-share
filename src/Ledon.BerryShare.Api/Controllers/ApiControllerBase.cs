@@ -9,7 +9,7 @@ namespace Ledon.BerryShare.Api.Controllers;
 public class ApiControllerBase : ControllerBase
 {
 
-    public User? CurrentUser
+    public UserEntity? CurrentUser
     {
         get
         {
@@ -21,10 +21,10 @@ public class ApiControllerBase : ControllerBase
             var tel = User.FindFirst("Tel")?.Value ?? string.Empty;
             var name = User.Identity?.Name ?? string.Empty;
 
-            return new User
+            return new UserEntity
             {
                 Id = Guid.Parse(userId),
-                Role = Enum.Parse<User.RoleEnum>(role),
+                Role = Enum.Parse<UserEntity.RoleEnum>(role),
                 Tel = tel,
                 Name = name
             };
@@ -35,6 +35,16 @@ public class ApiControllerBase : ControllerBase
     public IActionResult BerryOk(object? data = null)
     {
         return Ok(new BerryResult
+        {
+            Code = BerryResult.StatusCodeEnum.Success,
+            Data = data
+        });
+    }
+
+    [NonAction]
+    public IActionResult BerryOk<T>(T data) where T : new()
+    {
+        return Ok(new BerryResult<T>
         {
             Code = BerryResult.StatusCodeEnum.Success,
             Data = data
@@ -91,4 +101,11 @@ public class BerryResult
     public object? Data { get; set; } = null;
 
     public BerryResult() { }
+}
+
+
+public class BerryResult<T> : BerryResult
+    where T : new()
+{
+    public new T Data { get; set; } = new T();
 }

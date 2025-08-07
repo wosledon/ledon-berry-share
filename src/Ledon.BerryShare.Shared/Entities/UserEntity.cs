@@ -2,7 +2,7 @@ using Ledon.BerryShare.Shared.Base;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
-public class User : EntityBase
+public class UserEntity : EntityBase
 {
     public enum GenderEnum
     {

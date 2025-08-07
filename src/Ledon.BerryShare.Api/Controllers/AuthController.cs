@@ -33,14 +33,14 @@ public class AuthController : ApiControllerBase
             return BerryError("用户名或密码不能为空");
         }
 
-        var user = await _db.Q<User>().FirstOrDefaultAsync(u => (u.Account == request.Username
+        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => (u.Account == request.Username
         || u.Tel == request.Username) && u.Password == request.Password);
 
         if (user is null)
         {
             return BerryUnauthorized("用户名或密码错误");
         }
-        
+
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, user.Account),
@@ -68,6 +68,28 @@ public class AuthController : ApiControllerBase
     public IActionResult Logout()
     {
         return BerryOk("退出成功");
+    }
+
+    [HttpPost("reset-pwd")]
+    [Authorize]
+    public async Task<IActionResult> ResetPassword([FromBody] string newPassword)
+    {
+        var userId = User.FindFirst("UserId")?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BerryUnauthorized("未授权");
+        }
+
+        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+        if (user is null)
+        {
+            return BerryNotFound("用户未找到");
+        }
+
+        user.Password = newPassword;
+        await _db.SaveChangesAsync();
+
+        return BerryOk("密码重置成功");
     }
 }
 

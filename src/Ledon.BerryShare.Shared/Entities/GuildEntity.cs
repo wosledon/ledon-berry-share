@@ -2,16 +2,16 @@ using Ledon.BerryShare.Shared.Base;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
-public class Guild : EntityBase
+public class GuildEntity : EntityBase
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Avatar { get; set; } = string.Empty;
 
     public Guid OwnerId { get; set; } = Guid.Empty;
-    public User? Owner { get; set; }
+    public virtual UserEntity? Owner { get; set; }
 
-    public ICollection<User> Members { get; set; } = new List<User>();
+    public virtual ICollection<UserEntity> Members { get; set; } = new List<UserEntity>();
 
     public override string ToString()
     {

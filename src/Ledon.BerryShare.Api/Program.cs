@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Ledon.BerryShare.Api.Controllers;
+using Ledon.BerryShare.Api.Middlewares;
+using Scalar.AspNetCore;
 // ...existing code...
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +57,8 @@ builder.Services.AddScoped<UnitOfWork>();
 
 var app = builder.Build();
 
+app.UseMiddleware<ExceptionMiddleware>();
+
 // init database
 using (var scope = app.Services.CreateScope())
 {
@@ -65,6 +69,7 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.MapScalarApiReference();
     app.MapOpenApi();
 }
 
