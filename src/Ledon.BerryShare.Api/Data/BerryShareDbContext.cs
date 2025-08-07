@@ -33,6 +33,17 @@ public class BerryShareDbContext : DbContext
             }
         }
         base.OnModelCreating(modelBuilder);
+
+        // 添加UserEntity种子数据
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.UserEntity>().HasData(new Ledon.BerryShare.Shared.Entities.UserEntity
+        {
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            Name = "超级管理员",
+            Account = "super",
+            Password = "123456",
+            Tel = "12345678901",
+            Role = Ledon.BerryShare.Shared.Entities.UserEntity.RoleEnum.SuperAdmin
+        });
     }
 
     public override int SaveChanges()

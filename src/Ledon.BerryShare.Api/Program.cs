@@ -7,6 +7,7 @@ using System.Text;
 using Ledon.BerryShare.Api.Controllers;
 using Ledon.BerryShare.Api.Middlewares;
 using Scalar.AspNetCore;
+using Ledon.BerryShare.Api.Extensions;
 // ...existing code...
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,7 +51,10 @@ builder.Services.AddCors(options =>
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(opts =>
+{
+    opts.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 // Register UnitOfWork
 builder.Services.AddScoped<UnitOfWork>();
@@ -77,6 +81,8 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 
 // 自定义认证失败响应中间件
 app.UseAuthentication();
