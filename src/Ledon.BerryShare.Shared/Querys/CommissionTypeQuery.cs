@@ -8,6 +8,8 @@ public class CommissionTypeQuery : IPaged
     public int PageSize { get; set; } = 10;
     public string? Search { get; set; }
 
+    public Guid? GuildId { get; set; }
+
     public CommissionTypeQuery()
     {
         PageIndex = 1;

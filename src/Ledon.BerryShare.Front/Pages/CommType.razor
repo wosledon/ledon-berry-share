@@ -1,17 +1,21 @@
-
 @page "/comm-type"
 @using Ledon.BerryShare.Shared
 @using Ledon.BerryShare.Shared.Entities
+@using Ledon.BerryShare.Front.Services
 @inject Services.ApiService ApiService
+@inject GuildContextService GuildContext
 
-<h3>分成模板</h3>
+<h3>分成类型</h3>
 
 <div class="row mb-3">
     <div class="col-md-4">
-        <input class="form-control" placeholder="搜索分成模板..." @bind="search" @bind:event="oninput" />
+        <input class="form-control" placeholder="搜索分成类型..." @bind="search" @bind:event="oninput" />
     </div>
     <div class="col-md-2">
         <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="ShowAdd">新增</button>
     </div>
 </div>
 
@@ -26,6 +30,8 @@ else
             <tr>
                 <th>名称</th>
                 <th>描述</th>
+                <th>分成比例</th>
+                <th>税率</th>
                 <th>创建时间</th>
                 <th>操作</th>
             </tr>
@@ -36,6 +42,8 @@ else
                 <tr>
                     <td>@c.Name</td>
                     <td>@c.Description</td>
+                    <td>@((c.CommissionRate * 100).ToString("0.##"))%</td>
+                    <td>@((c.TaxRate * 100).ToString("0.##"))%</td>
                     <td>@c.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
                         <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(c)">详情</button>
@@ -66,7 +74,7 @@ else
     <div class="modal-dialog">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h5 class="modal-title">分成模板详情</h5>
+                <h5 class="modal-title">分成类型详情</h5>
                 <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
             </div>
             <div class="modal-body">
@@ -89,7 +97,7 @@ else
     <div class="modal-dialog">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h5 class="modal-title">编辑分成模板</h5>
+                <h5 class="modal-title">编辑分成类型</h5>
                 <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
             </div>
             <div class="modal-body">
@@ -103,11 +111,56 @@ else
                         <label class="form-label">描述</label>
                         <input class="form-control" @bind="editComposition.Description" />
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">分成比例</label>
+                        <input class="form-control" type="number" step="0.01" @bind="editComposition.CommissionRate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">税率</label>
+                        <input class="form-control" type="number" step="0.01" @bind="editComposition.TaxRate" />
+                    </div>
                 }
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" @onclick="SaveEdit">保存</button>
                 <button class="btn btn-secondary" @onclick="CloseEditModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增弹窗 -->
+<div class="modal fade @(showAddModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseAddModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">新增分成类型</h5>
+                <button type="button" class="btn-close" @onclick="CloseAddModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (addComposition != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input class="form-control" @bind="addComposition.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input class="form-control" @bind="addComposition.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">分成比例</label>
+                        <input class="form-control" type="number" step="0.01" @bind="addComposition.CommissionRate" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">税率</label>
+                        <input class="form-control" type="number" step="0.01" @bind="addComposition.TaxRate" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveAdd">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseAddModal">取消</button>
             </div>
         </div>
     </div>
@@ -126,6 +179,9 @@ else
     private CommissionTypeEntity? editComposition;
     private bool showEditModal = false;
 
+    private CommissionTypeEntity? addComposition;
+    private bool showAddModal = false;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
@@ -133,7 +189,7 @@ else
 
     private async Task LoadData()
     {
-        var query = $"comm-type/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
+        var query = $"api/v1/commissiontype/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
         var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeEntity>>>(query);
         compositions = result?.Data ?? new List<CommissionTypeEntity>();
         totalPages = (result?.TotalCount / pageSize) ?? 1;
@@ -196,9 +252,34 @@ else
     {
         if (editComposition != null)
         {
-            var result = await ApiService.PutAsync<CommissionTypeEntity>("comm-type/update", editComposition);
+            var result = await ApiService.PutAsync<CommissionTypeEntity>("api/v1/commissiontype/update", editComposition);
             await LoadData();
             CloseEditModal();
+        }
+    }
+
+    private void ShowAdd()
+    {
+        addComposition = new CommissionTypeEntity();
+        // 自动带入当前公会ID
+        addComposition.GuildId = GuildContext.CurrentGuildId;
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        addComposition = null;
+    }
+
+    private async Task SaveAdd()
+    {
+        if (addComposition != null)
+        {
+            addComposition.GuildId = GuildContext.CurrentGuildId;
+            var result = await ApiService.PostAsync<CommissionTypeEntity>("api/v1/commissiontype/create", addComposition);
+            await LoadData();
+            CloseAddModal();
         }
     }
 }

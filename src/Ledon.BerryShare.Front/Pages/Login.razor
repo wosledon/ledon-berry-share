@@ -27,7 +27,6 @@
 </div>
 @code {
     private LoginModel loginModel = new();
-    private string? errorMsg;
 
     private class LoginModel
     {
@@ -37,7 +36,6 @@
 
     private async Task HandleLogin()
     {
-        errorMsg = null;
         try
         {
             var result = await ApiService.PostAsync<BerryResult<LoginResult>>("/api/auth/login",

@@ -9,6 +9,8 @@ public class UserQuery : IPaged
 
     public string? Search { get; set; }
 
+    public Guid? GuildId { get; set; }
+
     public UserQuery()
     {
         PageIndex = 1;

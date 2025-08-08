@@ -17,4 +17,5 @@ builder.Services.AddSingleton<ToastService>();
 builder.Services.AddOptions();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddSingleton<GuildContextService>();
 await builder.Build().RunAsync();

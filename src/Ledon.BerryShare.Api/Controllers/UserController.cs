@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
-[Authorize]
 public class UserController : ApiControllerBase
 {
     private readonly UnitOfWork _db;
@@ -27,21 +26,38 @@ public class UserController : ApiControllerBase
             return BerryError("用户未登录");
         }
 
-        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => u.Id == userid);
+        var user = await _db.Q<UserEntity>().Include(u => u.Guild).FirstOrDefaultAsync(u => u.Id == userid);
         if (user == null)
         {
             return BerryError("用户不存在");
         }
 
-        return BerryOk(user);
+        var dto = new Ledon.BerryShare.Shared.Results.UserResult
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Tel = user.Tel,
+            GuildName = user.Guild?.Name ?? string.Empty,
+            CreateAt = user.CreateAt
+        };
+        return BerryOk(dto);
     }
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetUserListAsync(UserQuery query)
+    public async Task<IActionResult> GetUserListAsync([FromQuery]UserQuery query)
     {
         var users = await _db.Q<UserEntity>()
+            .Include(u => u.Guild)
             .WhereIf(!string.IsNullOrEmpty(query.Search), q => q.Where(u => u.Name.Contains(query.Search!) || u.Tel.Contains(query.Search!)))
+            .WhereIf(query.GuildId.HasValue, q => q.Where(u => u.GuildId == query.GuildId!.Value))
             .OrderByDescending(u => u.CreateAt)
+            .Select(u => new Ledon.BerryShare.Shared.Results.UserResult {
+                Id = u.Id,
+                Name = u.Name,
+                Tel = u.Tel,
+                GuildName = u.Guild != null ? u.Guild.Name : string.Empty,
+                CreateAt = u.CreateAt
+            })
             .ToPagedListAsync(query.PageIndex, query.PageSize);
         return BerryOk(users);
     }
@@ -49,13 +65,21 @@ public class UserController : ApiControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserByIdAsync(Guid id)
     {
-        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _db.Q<UserEntity>().Include(u => u.Guild).FirstOrDefaultAsync(u => u.Id == id);
         if (user == null)
         {
             return BerryError("用户不存在");
         }
 
-        return BerryOk(user);
+        var dto = new Ledon.BerryShare.Shared.Results.UserResult
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Tel = user.Tel,
+            GuildName = user.Guild?.Name ?? string.Empty,
+            CreateAt = user.CreateAt
+        };
+        return BerryOk(dto);
     }
 
     [HttpPut("update")]

@@ -13,6 +13,9 @@
     <div class="col-md-2">
         <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
     </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="ShowAdd">新增</button>
+    </div>
 </div>
 
 @if (types == null)
@@ -113,6 +116,35 @@ else
     </div>
 </div>
 
+<!-- 新增弹窗 -->
+<div class="modal fade @(showAddModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseAddModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">新增流水类型</h5>
+                <button type="button" class="btn-close" @onclick="CloseAddModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (addType != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input class="form-control" @bind="addType.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input class="form-control" @bind="addType.Description" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveAdd">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseAddModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
     private List<GiftFlowTypeEntity>? types;
     private int pageIndex = 1;
@@ -125,6 +157,9 @@ else
 
     private GiftFlowTypeEntity? editType;
     private bool showEditModal = false;
+
+    private GiftFlowTypeEntity? addType;
+    private bool showAddModal = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,6 +234,28 @@ else
             var result = await ApiService.PutAsync<GiftFlowTypeEntity>("gift-flow-type/update", editType);
             await LoadData();
             CloseEditModal();
+        }
+    }
+
+    private void ShowAdd()
+    {
+        addType = new GiftFlowTypeEntity();
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        addType = null;
+    }
+
+    private async Task SaveAdd()
+    {
+        if (addType != null)
+        {
+            var result = await ApiService.PostAsync<GiftFlowTypeEntity>("gift-flow-type/create", addType);
+            await LoadData();
+            CloseAddModal();
         }
     }
 }

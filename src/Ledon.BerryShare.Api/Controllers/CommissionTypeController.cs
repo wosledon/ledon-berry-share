@@ -8,7 +8,6 @@ using Ledon.BerryShare.Shared.Querys;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
-[Authorize]
 public class CommissionTypeController : ApiControllerBase
 {
     private readonly UnitOfWork _db;
@@ -19,11 +18,26 @@ public class CommissionTypeController : ApiControllerBase
     }
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetCommissionTypeListAsync(CommissionTypeQuery query)
+    public async Task<IActionResult> GetCommissionTypeListAsync([FromQuery]CommissionTypeQuery query)
     {
         var compositions = await _db.Q<CommissionTypeEntity>()
+            .Include(c => c.Guild)
             .WhereIf(!string.IsNullOrEmpty(query.Search), q => q.Where(c => c.Name.Contains(query.Search!)))
+            .WhereIf(query.GuildId.HasValue, q => q.Where(c => c.GuildId == query.GuildId!.Value))
             .OrderByDescending(c => c.CreateAt)
+            .Select(c => new Ledon.BerryShare.Shared.Results.CommissionTypeResult {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                GuildId = c.GuildId,
+                GuildName = c.Guild != null ? c.Guild.Name : string.Empty,
+                CommissionRate = c.CommissionRate,
+                TaxRate = c.TaxRate,
+                IsActive = c.IsActive,
+                IsDeleted = c.IsDeleted,
+                CreateAt = c.CreateAt,
+                ModifyAt = c.ModifyAt
+            })
             .ToPagedListAsync(query.PageIndex, query.PageSize);
         return BerryOk(compositions);
     }
@@ -72,5 +86,17 @@ public class CommissionTypeController : ApiControllerBase
         _db.Remove(composition);
         await _db.SaveChangesAsync();
         return BerryOk();
+    }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> CreateCommissionTypeAsync([FromBody] CommissionTypeEntity composition)
+    {
+        if (composition == null)
+        {
+            return BerryError("无效的分成类型信息");
+        }
+        _db.Add(composition);
+        await _db.SaveChangesAsync();
+        return BerryOk(composition);
     }
 }

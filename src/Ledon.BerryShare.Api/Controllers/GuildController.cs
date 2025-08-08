@@ -25,6 +25,13 @@ public class GuildController : ApiControllerBase
         var guilds = await _db.Q<GuildEntity>()
             .WhereIf(!string.IsNullOrEmpty(query.Search), q => q.Where(g => g.Name.Contains(query.Search!)))
             .OrderByDescending(g => g.CreateAt)
+            .Select(g => new Ledon.BerryShare.Shared.Results.GuildResult {
+                Id = g.Id,
+                Name = g.Name,
+                Description = g.Description,
+                Avatar = g.Avatar,
+                CreateAt = g.CreateAt
+            })
             .ToPagedListAsync(query.PageIndex, query.PageSize);
         return BerryOk(guilds);
     }
@@ -37,7 +44,15 @@ public class GuildController : ApiControllerBase
         {
             return BerryError("公会不存在");
         }
-        return BerryOk(guild);
+        var dto = new Ledon.BerryShare.Shared.Results.GuildResult
+        {
+            Id = guild.Id,
+            Name = guild.Name,
+            Description = guild.Description,
+            Avatar = guild.Avatar,
+            CreateAt = guild.CreateAt
+        };
+        return BerryOk(dto);
     }
 
     [HttpPut("update")]
