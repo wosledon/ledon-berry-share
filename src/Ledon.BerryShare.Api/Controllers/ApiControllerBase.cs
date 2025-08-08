@@ -33,16 +33,6 @@ public class ApiControllerBase : ControllerBase
     }
 
     [NonAction]
-    public IActionResult BerryOk(object? data = null)
-    {
-        return Ok(new BerryResult
-        {
-            Code = BerryResult.StatusCodeEnum.Success,
-            Data = data
-        });
-    }
-
-    [NonAction]
     public IActionResult BerryOk<T>(T data) where T : new()
     {
         return Ok(new BerryResult<T>
@@ -53,13 +43,22 @@ public class ApiControllerBase : ControllerBase
     }
 
     [NonAction]
-    public IActionResult BerryError(string message = "请求失败", object? data = null)
+    public IActionResult BerryOk(string message = "请求成功")
+    {
+        return Ok(new BerryResult
+        {
+            Code = BerryResult.StatusCodeEnum.Success,
+            Message = message
+        });
+    }
+
+    [NonAction]
+    public IActionResult BerryError(string message = "请求失败")
     {
         return Ok(new BerryResult
         {
             Code = BerryResult.StatusCodeEnum.Error,
             Message = message,
-            Data = data
         });
     }
 
@@ -70,7 +69,6 @@ public class ApiControllerBase : ControllerBase
         {
             Code = BerryResult.StatusCodeEnum.NotFound,
             Message = message,
-            Data = data
         });
     }
 
@@ -81,7 +79,6 @@ public class ApiControllerBase : ControllerBase
         {
             Code = BerryResult.StatusCodeEnum.Unauthorized,
             Message = message,
-            Data = data
         });
     }
 }

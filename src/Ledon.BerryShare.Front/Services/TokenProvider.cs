@@ -19,15 +19,15 @@ namespace Ledon.BerryShare.Front.Services
         }
         public async Task<string?> GetTokenAsync()
         {
-            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "token");
+            return await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "berryShareToken");
         }
         public async Task SetTokenAsync(string token)
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "token", token);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "berryShareToken", token);
         }
         public async Task RemoveTokenAsync()
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "token");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "berryShareToken");
         }
     }
 }

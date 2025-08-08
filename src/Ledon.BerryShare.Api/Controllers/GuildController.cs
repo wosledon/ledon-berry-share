@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
-[Authorize]
+// [Authorize]
 public class GuildController : ApiControllerBase
 {
     private readonly UnitOfWork _db;
@@ -20,7 +20,7 @@ public class GuildController : ApiControllerBase
     }
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetGuildListAsync(GuildQuery query)
+    public async Task<IActionResult> GetGuildListAsync([FromQuery] GuildQuery query)
     {
         var guilds = await _db.Q<GuildEntity>()
             .WhereIf(!string.IsNullOrEmpty(query.Search), q => q.Where(g => g.Name.Contains(query.Search!)))
@@ -74,5 +74,18 @@ public class GuildController : ApiControllerBase
         _db.Remove(guild);
         await _db.SaveChangesAsync();
         return BerryOk();
+    }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> CreateGuildAsync([FromBody] GuildEntity guild)
+    {
+        if (guild == null)
+        {
+            return BerryError("无效的公会信息");
+        }
+        guild.Id = Guid.NewGuid();
+        _db.Add(guild);
+        await _db.SaveChangesAsync();
+        return BerryOk(guild);
     }
 }

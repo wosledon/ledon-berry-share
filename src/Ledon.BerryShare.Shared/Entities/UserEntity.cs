@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Ledon.BerryShare.Shared.Base;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
+[Table("Users")]
 public class UserEntity : EntityBase
 {
     public enum GenderEnum
@@ -30,4 +32,11 @@ public class UserEntity : EntityBase
     public string Avatar { get; set; } = string.Empty;
 
     public RoleEnum Role { get; set; } = RoleEnum.Guest;
+
+
+    public Guid? GuildId { get; set; }
+    public virtual GuildEntity? Guild { get; set; }
+
+
+    public virtual ICollection<GiftFlowEntity> GiftFlowTypes { get; set; } = new List<GiftFlowEntity>();
 }

@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Ledon.BerryShare.Shared.Base;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
+[Table("CommissionTypes")]
 public class CommissionTypeEntity : EntityBase
 {
     public string Name { get; set; } = string.Empty;

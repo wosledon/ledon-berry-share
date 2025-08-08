@@ -1,5 +1,7 @@
 @using Ledon.BerryShare.Shared
+@using Ledon.BerryShare.Shared.Results
 @using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
 @inject Ledon.BerryShare.Front.Services.ApiService ApiService
 @inject Ledon.BerryShare.Front.Services.ITokenProvider TokenProvider
 @inject NavigationManager NavigationManager
@@ -44,21 +46,16 @@
             {
                 await TokenProvider.SetTokenAsync(result.Data.Token);
                 await ToastService.ShowToastAsync("登录成功！", Ledon.BerryShare.Front.Services.ToastType.Info);
-                NavigationManager.NavigateTo("/");
+                NavigationManager.NavigateTo("/", true);
             }
             else
             {
-                await ToastService.ShowToastAsync("登录失败，用户名或密码错误。", Ledon.BerryShare.Front.Services.ToastType.Error);
+                await ToastService.ShowToastAsync(result?.Message ?? "登录失败，未知错误。", Ledon.BerryShare.Front.Services.ToastType.Error);
             }
         }
         catch (Exception ex)
         {
             await ToastService.ShowToastAsync("登录异常：" + ex.Message, Ledon.BerryShare.Front.Services.ToastType.Error);
         }
-    }
-
-    private class LoginResult
-    {
-        public string Token { get; set; } = string.Empty;
     }
 }

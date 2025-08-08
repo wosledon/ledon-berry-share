@@ -1,0 +1,204 @@
+
+@page "/comm-type"
+@using Ledon.BerryShare.Shared
+@using Ledon.BerryShare.Shared.Entities
+@inject Services.ApiService ApiService
+
+<h3>分成模板</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="搜索分成模板..." @bind="search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
+    </div>
+</div>
+
+@if (compositions == null)
+{
+    <p>加载中...</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>名称</th>
+                <th>描述</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in compositions)
+            {
+                <tr>
+                    <td>@c.Name</td>
+                    <td>@c.Description</td>
+                    <td>@c.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(c)">详情</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(c)">编辑</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="PrevPage">上一页</button>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @pageIndex 页 / 共 @totalPages 页</span>
+            </li>
+            <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="NextPage">下一页</button>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- 详情弹窗 -->
+<div class="modal fade @(showDetailModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseDetailModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">分成模板详情</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedComposition != null)
+                {
+                    <div><strong>名称：</strong> @selectedComposition.Name</div>
+                    <div><strong>描述：</strong> @selectedComposition.Description</div>
+                    <div><strong>创建时间：</strong> @selectedComposition.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailModal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal fade @(showEditModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseEditModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑分成模板</h5>
+                <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (editComposition != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input class="form-control" @bind="editComposition.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input class="form-control" @bind="editComposition.Description" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveEdit">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseEditModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CommissionTypeEntity>? compositions;
+    private int pageIndex = 1;
+    private int pageSize = 10;
+    private int totalPages = 1;
+    private string search = string.Empty;
+
+    private CommissionTypeEntity? selectedComposition;
+    private bool showDetailModal = false;
+
+    private CommissionTypeEntity? editComposition;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = $"comm-type/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
+        var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeEntity>>>(query);
+        compositions = result?.Data ?? new List<CommissionTypeEntity>();
+        totalPages = (result?.TotalCount / pageSize) ?? 1;
+    }
+
+    private async Task OnSearch()
+    {
+        pageIndex = 1;
+        await LoadData();
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 1)
+        {
+            pageIndex--;
+            await LoadData();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < totalPages)
+        {
+            pageIndex++;
+            await LoadData();
+        }
+    }
+
+    private void ShowDetail(CommissionTypeEntity composition)
+    {
+        selectedComposition = composition;
+        showDetailModal = true;
+    }
+
+    private void CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedComposition = null;
+    }
+
+    private void ShowEdit(CommissionTypeEntity composition)
+    {
+        editComposition = new CommissionTypeEntity
+        {
+            Id = composition.Id,
+            Name = composition.Name,
+            Description = composition.Description
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editComposition = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editComposition != null)
+        {
+            var result = await ApiService.PutAsync<CommissionTypeEntity>("comm-type/update", editComposition);
+            await LoadData();
+            CloseEditModal();
+        }
+    }
+}

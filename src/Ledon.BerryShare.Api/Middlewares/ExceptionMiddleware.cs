@@ -59,7 +59,6 @@ public class ExceptionMiddleware
         {
             Code = BerryResult.StatusCodeEnum.Error,
             Message = ex.Message,
-            Data = null
         });
         return context.Response.WriteAsync(result);
     }

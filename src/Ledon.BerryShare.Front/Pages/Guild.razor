@@ -1,0 +1,272 @@
+
+@page "/guild"
+@using Ledon.BerryShare.Shared
+@using Ledon.BerryShare.Shared.Entities
+@inject Services.ApiService ApiService
+
+<h3>公会管理</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="搜索公会名称..." @bind="search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="ShowAdd">新增公会</button>
+    </div>
+</div>
+
+@if (guilds == null)
+{
+    <p>加载中...</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>名称</th>
+                <th>描述</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in guilds)
+            {
+                <tr>
+                    <td>@g.Name</td>
+                    <td>@g.Description</td>
+                    <td>@g.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(g)">详情</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(g)">编辑</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="PrevPage">上一页</button>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @pageIndex 页 / 共 @totalPages 页</span>
+            </li>
+            <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="NextPage">下一页</button>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- 详情弹窗 -->
+<div class="modal fade @(showDetailModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseDetailModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">公会详情</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedGuild != null)
+                {
+                    <div><strong>名称：</strong> @selectedGuild.Name</div>
+                    <div><strong>描述：</strong> @selectedGuild.Description</div>
+                    <div><strong>头像：</strong> <img src="@selectedGuild.Avatar" style="max-width:80px;max-height:80px;" /></div>
+                    <div><strong>创建时间：</strong> @selectedGuild.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailModal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal fade @(showEditModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseEditModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑公会</h5>
+                <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (editGuild != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input class="form-control" @bind="editGuild.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input class="form-control" @bind="editGuild.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">头像</label>
+                        <input class="form-control" @bind="editGuild.Avatar" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveEdit">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseEditModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增弹窗 -->
+<div class="modal fade @(showAddModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseAddModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">新增公会</h5>
+                <button type="button" class="btn-close" @onclick="CloseAddModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (addGuild != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input class="form-control" @bind="addGuild.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <input class="form-control" @bind="addGuild.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">头像</label>
+                        <input class="form-control" @bind="addGuild.Avatar" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveAdd">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseAddModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private List<GuildEntity> guilds = new();
+    private int pageIndex = 1;
+    private int pageSize = 10;
+    private int totalPages = 1;
+    private string search = string.Empty;
+
+    private GuildEntity? selectedGuild;
+    private bool showDetailModal = false;
+
+    private GuildEntity? editGuild;
+    private bool showEditModal = false;
+
+    private GuildEntity? addGuild;
+    private bool showAddModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = $"api/v1/guild/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
+        var result = await ApiService.GetAsync<BerryResult<List<GuildEntity>>>(query);
+        guilds = result?.Data ?? new List<GuildEntity>();
+        totalPages = (result?.TotalCount / pageSize) ?? 1;
+    }
+
+    private async Task OnSearch()
+    {
+        pageIndex = 1;
+        await LoadData();
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 1)
+        {
+            pageIndex--;
+            await LoadData();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < totalPages)
+        {
+            pageIndex++;
+            await LoadData();
+        }
+    }
+
+    private void ShowDetail(GuildEntity guild)
+    {
+        selectedGuild = guild;
+        showDetailModal = true;
+    }
+
+    private void CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedGuild = null;
+    }
+
+    private void ShowEdit(GuildEntity guild)
+    {
+        editGuild = new GuildEntity
+        {
+            Id = guild.Id,
+            Name = guild.Name,
+            Description = guild.Description,
+            Avatar = guild.Avatar
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editGuild = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editGuild != null)
+        {
+            var result = await ApiService.PutAsync<GuildEntity>("api/v1/guild/update", editGuild);
+            await LoadData();
+            CloseEditModal();
+        }
+    }
+
+    private void ShowAdd()
+    {
+        addGuild = new GuildEntity();
+        showAddModal = true;
+    }
+
+    private void CloseAddModal()
+    {
+        showAddModal = false;
+        addGuild = null;
+    }
+
+    private async Task SaveAdd()
+    {
+        if (addGuild != null)
+        {
+            var result = await ApiService.PostAsync<GuildEntity>("api/v1/guild/create", addGuild);
+            await LoadData();
+            CloseAddModal();
+        }
+    }
+}

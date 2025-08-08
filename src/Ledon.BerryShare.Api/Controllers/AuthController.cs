@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Ledon.BerryShare.Api.Services;
 using Ledon.BerryShare.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
+using Ledon.BerryShare.Shared.Results;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
@@ -28,13 +29,13 @@ public class AuthController : ApiControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if (request == null || string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+        if (request == null || string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Password))
         {
             return BerryError("用户名或密码不能为空");
         }
 
-        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => (u.Account == request.Username
-        || u.Tel == request.Username) && u.Password == request.Password);
+        var user = await _db.Q<UserEntity>().FirstOrDefaultAsync(u => (u.Account == request.UserName
+        || u.Tel == request.UserName) && u.Password == request.Password);
 
         if (user is null)
         {
@@ -59,7 +60,7 @@ public class AuthController : ApiControllerBase
             expires: DateTime.UtcNow.AddHours(2),
             signingCredentials: creds
         );
-        return BerryOk(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+        return BerryOk(new LoginResult{ Token = new JwtSecurityTokenHandler().WriteToken(token) });
 
     }
 
@@ -95,6 +96,6 @@ public class AuthController : ApiControllerBase
 
 public class LoginRequest
 {
-    public required string Username { get; set; }
+    public required string UserName { get; set; }
     public required string Password { get; set; }
 }

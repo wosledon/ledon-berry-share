@@ -9,6 +9,13 @@ namespace Ledon.BerryShare.Front.Services
 {
     public class ApiService
     {
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+
         private readonly HttpClient _httpClient;
         private readonly ITokenProvider _tokenProvider;
         private readonly NavigationManager _navigationManager;
@@ -37,29 +44,32 @@ namespace Ledon.BerryShare.Front.Services
             await HandleAuthExpired(response);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json);
+            Console.WriteLine("GetAsync URL: " + url);
+            Console.WriteLine("GetAsync response: " + json);
+            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
         }
 
         public async Task<T?> PostAsync<T>(string url, object data)
         {
             await AddAuthHeaderAsync();
-            var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+            var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(url, content);
             await HandleAuthExpired(response);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json);
+            Console.WriteLine("PostAsync response: " + json);
+            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
         }
 
         public async Task<T?> PutAsync<T>(string url, object data)
         {
             await AddAuthHeaderAsync();
-            var content = new StringContent(JsonSerializer.Serialize(data), Encoding.UTF8, "application/json");
+            var content = new StringContent(JsonSerializer.Serialize(data, _jsonOptions), Encoding.UTF8, "application/json");
             var response = await _httpClient.PutAsync(url, content);
             await HandleAuthExpired(response);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json);
+            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
         }
 
         public async Task<T?> DeleteAsync<T>(string url)
@@ -69,7 +79,7 @@ namespace Ledon.BerryShare.Front.Services
             await HandleAuthExpired(response);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json);
+            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
         }
 
         private async Task HandleAuthExpired(HttpResponseMessage response)

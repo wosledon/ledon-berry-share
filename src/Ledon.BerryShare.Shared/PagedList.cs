@@ -1,6 +1,14 @@
 ﻿namespace Ledon.BerryShare.Shared;
 
-public class PagedList<T> : List<T>
+public interface IPagedList
+{
+    public int PageIndex { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages { get; }
+}
+
+public class PagedList<T> : List<T>, IPagedList
 {
     public int PageIndex { get; set; }
     public int PageSize { get; set; }
@@ -19,6 +27,13 @@ public class PagedList<T> : List<T>
         PageIndex = pageIndex;
         PageSize = pageSize;
     }
+
+    public PagedList()
+    {
+        PageIndex = 1;
+        PageSize = 10;
+        TotalCount = 0;
+    }
 }
 
 public class BerryResult
@@ -34,7 +49,6 @@ public class BerryResult
 
     public StatusCodeEnum Code { get; set; } = StatusCodeEnum.Success;
     public string Message { get; set; } = string.Empty;
-    public object? Data { get; set; } = null;
 
     public BerryResult() { }
 }
@@ -43,6 +57,18 @@ public class BerryResult
 public class BerryResult<T> : BerryResult
     where T : new()
 {
-    public new T Data { get; set; } = new T();
+    public T Data { get; set; } = new T();
+    
+    public int TotalCount
+    {
+        get => Data is IPagedList pagedList ? pagedList.TotalCount : 0;
+        set
+        {
+            if (Data is IPagedList pagedList)
+            {
+                pagedList.TotalCount = value;
+            }
+        }
+    }
 }
 

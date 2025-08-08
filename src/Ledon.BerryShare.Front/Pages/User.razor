@@ -1,0 +1,204 @@
+
+@page "/user"
+@using Ledon.BerryShare.Shared
+@using Ledon.BerryShare.Shared.Entities
+@inject Services.ApiService ApiService
+
+<h3>人员管理</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="搜索姓名或电话..." @bind="search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
+    </div>
+</div>
+
+@if (users == null)
+{
+    <p>加载中...</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>姓名</th>
+                <th>电话</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in users)
+            {
+                <tr>
+                    <td>@u.Name</td>
+                    <td>@u.Tel</td>
+                    <td>@u.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(u)">详情</button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(u)">编辑</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="PrevPage">上一页</button>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @pageIndex 页 / 共 @totalPages 页</span>
+            </li>
+            <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="NextPage">下一页</button>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- 详情弹窗 -->
+<div class="modal fade @(showDetailModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseDetailModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">人员详情</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedUser != null)
+                {
+                    <div><strong>姓名：</strong> @selectedUser.Name</div>
+                    <div><strong>电话：</strong> @selectedUser.Tel</div>
+                    <div><strong>创建时间：</strong> @selectedUser.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailModal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal fade @(showEditModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseEditModal">
+    <div class="modal-dialog">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑人员</h5>
+                <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (editUser != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">姓名</label>
+                        <input class="form-control" @bind="editUser.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">电话</label>
+                        <input class="form-control" @bind="editUser.Tel" />
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveEdit">保存</button>
+                <button class="btn btn-secondary" @onclick="CloseEditModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserEntity>? users;
+    private int pageIndex = 1;
+    private int pageSize = 10;
+    private int totalPages = 1;
+    private string search = string.Empty;
+
+    private UserEntity? selectedUser;
+    private bool showDetailModal = false;
+
+    private UserEntity? editUser;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = $"user/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
+        var result = await ApiService.GetAsync<BerryResult<List<UserEntity>>>(query);
+        users = result?.Data ?? new List<UserEntity>();
+        totalPages = (result?.TotalCount / pageSize) ?? 1;
+    }
+
+    private async Task OnSearch()
+    {
+        pageIndex = 1;
+        await LoadData();
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 1)
+        {
+            pageIndex--;
+            await LoadData();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < totalPages)
+        {
+            pageIndex++;
+            await LoadData();
+        }
+    }
+
+    private void ShowDetail(UserEntity user)
+    {
+        selectedUser = user;
+        showDetailModal = true;
+    }
+
+    private void CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedUser = null;
+    }
+
+    private void ShowEdit(UserEntity user)
+    {
+        editUser = new UserEntity
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Tel = user.Tel
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editUser = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editUser != null)
+        {
+            var result = await ApiService.PutAsync<UserEntity>("user/update", editUser);
+            await LoadData();
+            CloseEditModal();
+        }
+    }
+}

@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Ledon.BerryShare.Shared.Base;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
+[Table("GiftFlows")]
 public class GiftFlowEntity : EntityBase
 {
     public Guid UserId { get; set; } = Guid.Empty;
