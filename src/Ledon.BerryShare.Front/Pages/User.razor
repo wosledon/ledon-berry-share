@@ -278,7 +278,7 @@ else
     {
         if (addUser != null)
         {
-            addUser.GuildId = addUser.GuildId == Guid.Empty ? null : addUser.GuildId;
+            addUser.GuildId = addUser.GuildId == Guid.Empty ? Guid.Empty : addUser.GuildId;
             var result = await ApiService.PostAsync<UserEntity>("api/v1/user/create", addUser);
             await LoadData();
             CloseAddModal();

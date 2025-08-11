@@ -34,15 +34,73 @@ public class BerryShareDbContext : DbContext
         }
         base.OnModelCreating(modelBuilder);
 
-        // 添加UserEntity种子数据
-        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.UserEntity>().HasData(new Ledon.BerryShare.Shared.Entities.UserEntity
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.GuildEntity>().HasData(new List<Ledon.BerryShare.Shared.Entities.GuildEntity>()
         {
-            Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-            Name = "超级管理员",
-            Account = "super",
-            Password = "123456",
-            Tel = "12345678901",
-            Role = Ledon.BerryShare.Shared.Entities.UserEntity.RoleEnum.SuperAdmin
+            new Ledon.BerryShare.Shared.Entities.GuildEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name = "公会1"
+            },
+            new Ledon.BerryShare.Shared.Entities.GuildEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Name = "公会2"
+            }
+        });
+
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.CommissionTypeEntity>().HasData(new List<Ledon.BerryShare.Shared.Entities.CommissionTypeEntity>()
+        {
+            new Ledon.BerryShare.Shared.Entities.CommissionTypeEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name = "普通礼物流水",
+                CommissionRate = 0.5m,
+                TaxRate = 0.04m,
+                Description = "普通礼物流水描述",
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+            },
+            new Ledon.BerryShare.Shared.Entities.CommissionTypeEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Name = "幸运礼物流水",
+                CommissionRate = 0.5m,
+                TaxRate = 0.02m,
+                Description = "幸运礼物流水描述",
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+            },
+            new Ledon.BerryShare.Shared.Entities.CommissionTypeEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000003"),
+                Name = "管理员抽成",
+                CommissionRate = 0.1m,
+                TaxRate = 0.04m,
+                Description = "管理员抽成描述",
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+            }
+        });
+
+        // 添加UserEntity种子数据
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.UserEntity>().HasData(new List<Ledon.BerryShare.Shared.Entities.UserEntity>()
+        {
+            new Ledon.BerryShare.Shared.Entities.UserEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name = "超级管理员",
+                Account = "super",
+                Password = "123456",
+                Tel = "12345678901",
+                Role = Ledon.BerryShare.Shared.Entities.UserEntity.RoleEnum.SuperAdmin
+            },
+            new Ledon.BerryShare.Shared.Entities.UserEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                Name = "饺子",
+                Account = "user",
+                Password = "123456",
+                Tel = "12345678901",
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Role = Ledon.BerryShare.Shared.Entities.UserEntity.RoleEnum.User
+            }
         });
     }
 

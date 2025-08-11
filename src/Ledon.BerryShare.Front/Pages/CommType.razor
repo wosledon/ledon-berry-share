@@ -3,13 +3,22 @@
 @using Ledon.BerryShare.Shared.Entities
 @using Ledon.BerryShare.Front.Services
 @inject Services.ApiService ApiService
-@inject GuildContextService GuildContext
+@using Ledon.BerryShare.Shared.Results
 
 <h3>分成类型</h3>
 
 <div class="row mb-3">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <input class="form-control" placeholder="搜索分成类型..." @bind="search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" @bind="selectedGuildId">
+            <option value="">全部公会</option>
+            @foreach (var g in guilds)
+            {
+                <option value="@g.Id">@g.Name</option>
+            }
+        </select>
     </div>
     <div class="col-md-2">
         <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
@@ -173,6 +182,9 @@ else
     private int totalPages = 1;
     private string search = string.Empty;
 
+    private List<GuildResult> guilds = new();
+    private Guid? selectedGuildId = null;
+
     private CommissionTypeEntity? selectedComposition;
     private bool showDetailModal = false;
 
@@ -184,12 +196,20 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadGuilds();
         await LoadData();
+    }
+
+    private async Task LoadGuilds()
+    {
+        var result = await ApiService.GetAsync<BerryResult<List<GuildResult>>>("api/v1/guild/list?pageIndex=1&pageSize=100");
+        guilds = result?.Data ?? new List<GuildResult>();
     }
 
     private async Task LoadData()
     {
-        var query = $"api/v1/commissiontype/list?search={search}&pageIndex={pageIndex}&pageSize={pageSize}";
+        var guildParam = selectedGuildId.HasValue ? $"&guildId={selectedGuildId}" : "";
+        var query = $"api/v1/commissiontype/list?search={search}{guildParam}&pageIndex={pageIndex}&pageSize={pageSize}";
         var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeEntity>>>(query);
         compositions = result?.Data ?? new List<CommissionTypeEntity>();
         totalPages = (result?.TotalCount / pageSize) ?? 1;
@@ -237,7 +257,8 @@ else
         {
             Id = composition.Id,
             Name = composition.Name,
-            Description = composition.Description
+            Description = composition.Description,
+            GuildId = composition.GuildId
         };
         showEditModal = true;
     }
@@ -261,8 +282,7 @@ else
     private void ShowAdd()
     {
         addComposition = new CommissionTypeEntity();
-        // 自动带入当前公会ID
-        addComposition.GuildId = GuildContext.CurrentGuildId;
+        addComposition.GuildId = selectedGuildId ?? Guid.Empty;
         showAddModal = true;
     }
 
@@ -276,7 +296,6 @@ else
     {
         if (addComposition != null)
         {
-            addComposition.GuildId = GuildContext.CurrentGuildId;
             var result = await ApiService.PostAsync<CommissionTypeEntity>("api/v1/commissiontype/create", addComposition);
             await LoadData();
             CloseAddModal();

@@ -8,7 +8,6 @@ using Ledon.BerryShare.Shared.Querys;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
-[Authorize]
 public class GiftFlowController : ApiControllerBase
 {
     private readonly UnitOfWork _db;
@@ -19,7 +18,7 @@ public class GiftFlowController : ApiControllerBase
     }
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetGiftFlowListAsync(GiftFlowQuery query)
+    public async Task<IActionResult> GetGiftFlowListAsync([FromQuery]GiftFlowQuery query)
     {
         var flows = await _db.Q<GiftFlowEntity>()
             .WhereIf(query.GuildId.HasValue, q => q.Where(s => s.GuildId == query.GuildId!.Value))
