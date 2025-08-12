@@ -79,6 +79,28 @@ public class BerryShareDbContext : DbContext
             }
         });
 
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.GiftFlowTypeEntity>().HasData(new List<Ledon.BerryShare.Shared.Entities.GiftFlowTypeEntity>()
+        {
+            new Ledon.BerryShare.Shared.Entities.GiftFlowTypeEntity
+            {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                Name = "通用流水组成",
+                Description = "通用流水组成",
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+            }
+        });
+
+        // 配置多对多关系的种子数据
+        // 需要在OnModelCreating中配置多对多关系
+        modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.GiftFlowTypeEntity>()
+            .HasMany(g => g.Compositions)
+            .WithMany()
+            .UsingEntity(j => j.HasData(
+                new { CompositionsId = Guid.Parse("00000000-0000-0000-0000-000000000001"), GiftFlowTypeEntityId = Guid.Parse("00000000-0000-0000-0000-000000000001") },
+                new { CompositionsId = Guid.Parse("00000000-0000-0000-0000-000000000002"), GiftFlowTypeEntityId = Guid.Parse("00000000-0000-0000-0000-000000000001") },
+                new { CompositionsId = Guid.Parse("00000000-0000-0000-0000-000000000003"), GiftFlowTypeEntityId = Guid.Parse("00000000-0000-0000-0000-000000000001") }
+            ));
+
         // 添加UserEntity种子数据
         modelBuilder.Entity<Ledon.BerryShare.Shared.Entities.UserEntity>().HasData(new List<Ledon.BerryShare.Shared.Entities.UserEntity>()
         {

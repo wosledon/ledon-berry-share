@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Ledon.BerryShare.Shared.Querys;
+using Ledon.BerryShare.Shared.Results;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
@@ -98,5 +99,107 @@ public class CommissionTypeController : ApiControllerBase
         _db.Add(composition);
         await _db.SaveChangesAsync();
         return BerryOk(composition);
+    }
+
+    [HttpPost("bind/{giftFlowTypeId}")]
+    public async Task<IActionResult> BindCommissionTypesToGiftFlowTypeAsync([FromBody] List<Guid> commissionTypeIds, Guid giftFlowTypeId)
+    {
+        if (giftFlowTypeId == Guid.Empty)
+        {
+            return BerryError("无效的流水组成ID");
+        }
+
+        if (commissionTypeIds == null || !commissionTypeIds.Any())
+        {
+            return BerryError("无效的流水类型ID列表");
+        }
+
+        // 检查流水组成是否存在
+        var giftFlowType = await _db.Q<GiftFlowTypeEntity>().Include(g => g.Compositions).FirstOrDefaultAsync(g => g.Id == giftFlowTypeId);
+        if (giftFlowType == null)
+        {
+            return BerryError("流水组成不存在");
+        }
+
+        // 检查所有流水类型是否存在
+        var commissionTypes = await _db.Q<CommissionTypeEntity>()
+            .Where(c => commissionTypeIds.Contains(c.Id))
+            .ToListAsync();
+
+        if (commissionTypes.Count != commissionTypeIds.Count)
+        {
+            return BerryError("部分流水类型不存在");
+        }
+
+        // 清除现有绑定
+        giftFlowType.Compositions.Clear();
+
+        // 添加新的绑定
+        foreach (var commissionType in commissionTypes)
+        {
+            giftFlowType.Compositions.Add(commissionType);
+        }
+
+        _db.Update(giftFlowType);
+        await _db.SaveChangesAsync();
+        
+        return BerryOk();
+    }
+
+    [HttpDelete("unbind/{giftFlowTypeId}")]
+    public async Task<IActionResult> UnbindCommissionTypesFromGiftFlowTypeAsync(Guid giftFlowTypeId)
+    {
+        if (giftFlowTypeId == Guid.Empty)
+        {
+            return BerryError("无效的流水组成ID");
+        }
+
+        var giftFlowType = await _db.Q<GiftFlowTypeEntity>().Include(g => g.Compositions).FirstOrDefaultAsync(g => g.Id == giftFlowTypeId);
+        if (giftFlowType == null)
+        {
+            return BerryError("流水组成不存在");
+        }
+
+        giftFlowType.Compositions.Clear();
+        _db.Update(giftFlowType);
+        await _db.SaveChangesAsync();
+        
+        return BerryOk();
+    }
+
+    [HttpGet("by-giftflowtype/{giftFlowTypeId}")]
+    public async Task<IActionResult> GetCommissionTypesByGiftFlowTypeAsync(Guid giftFlowTypeId)
+    {
+        if (giftFlowTypeId == Guid.Empty)
+        {
+            return BerryError("无效的流水组成ID");
+        }
+
+        var giftFlowType = await _db.Q<GiftFlowTypeEntity>()
+            .Include(g => g.Compositions)
+            .ThenInclude(c => c.Guild)
+            .FirstOrDefaultAsync(g => g.Id == giftFlowTypeId);
+
+        if (giftFlowType == null)
+        {
+            return BerryError("流水组成不存在");
+        }
+
+        var commissionTypes = giftFlowType.Compositions.Select(c => new CommissionTypeResult
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Description = c.Description,
+            GuildId = c.GuildId,
+            GuildName = c.Guild != null ? c.Guild.Name : string.Empty,
+            CommissionRate = c.CommissionRate,
+            TaxRate = c.TaxRate,
+            IsActive = c.IsActive,
+            IsDeleted = c.IsDeleted,
+            CreateAt = c.CreateAt,
+            ModifyAt = c.ModifyAt
+        }).ToList();
+
+        return BerryOk(commissionTypes);
     }
 }

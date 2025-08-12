@@ -56,6 +56,16 @@
                             }
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">流水组成</label>
+                        <select class="form-select" @bind="addUser.GiftFlowTypeId">
+                            <option value="">请选择流水组成</option>
+                            @foreach (var gft in giftFlowTypes.Where(x => x.GuildId == addUser.GuildId || addUser.GuildId == Guid.Empty))
+                            {
+                                <option value="@gft.Id">@gft.Name</option>
+                            }
+                        </select>
+                    </div>
                 }
             </div>
             <div class="modal-footer">
@@ -78,6 +88,7 @@ else
                 <th>姓名</th>
                 <th>电话</th>
                 <th>公会</th>
+                <th>流水组成</th>
                 <th>创建时间</th>
                 <th>操作</th>
             </tr>
@@ -89,6 +100,7 @@ else
                     <td>@u.Name</td>
                     <td>@u.Tel</td>
                     <td>@u.GuildName</td>
+                    <td>@u.GiftFlowTypeName</td>
                     <td>@u.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
                         <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(u)">详情</button>
@@ -127,6 +139,8 @@ else
                 {
                     <div><strong>姓名：</strong> @selectedUser.Name</div>
                     <div><strong>电话：</strong> @selectedUser.Tel</div>
+                    <div><strong>公会：</strong> @selectedUser.GuildName</div>
+                    <div><strong>流水组成：</strong> @selectedUser.GiftFlowTypeName</div>
                     <div><strong>创建时间：</strong> @selectedUser.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
                 }
             </div>
@@ -156,6 +170,26 @@ else
                         <label class="form-label">电话</label>
                         <input class="form-control" @bind="editUser.Tel" />
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属公会</label>
+                        <select class="form-select" @bind="editUser.GuildId">
+                            <option value="">请选择公会</option>
+                            @foreach (var g in guilds)
+                            {
+                                <option value="@g.Id">@g.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">流水组成</label>
+                        <select class="form-select" @bind="editUser.GiftFlowTypeId">
+                            <option value="">请选择流水组成</option>
+                            @foreach (var gft in giftFlowTypes.Where(x => x.GuildId == editUser.GuildId || editUser.GuildId == Guid.Empty))
+                            {
+                                <option value="@gft.Id">@gft.Name</option>
+                            }
+                        </select>
+                    </div>
                 }
             </div>
             <div class="modal-footer">
@@ -174,6 +208,7 @@ else
     private string search = string.Empty;
 
     private List<Ledon.BerryShare.Shared.Results.GuildResult> guilds = new();
+    private List<Ledon.BerryShare.Shared.Results.GiftFlowTypeResult> giftFlowTypes = new();
     private Guid? selectedGuildId = null;
 
     private UserResult? selectedUser;
@@ -203,6 +238,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadGuilds();
+        await LoadGiftFlowTypes();
         await LoadData();
     }
 
@@ -210,6 +246,12 @@ else
     {
         var result = await ApiService.GetAsync<BerryResult<List<Ledon.BerryShare.Shared.Results.GuildResult>>>("api/v1/guild/list?pageIndex=1&pageSize=100");
         guilds = result?.Data ?? new List<Ledon.BerryShare.Shared.Results.GuildResult>();
+    }
+
+    private async Task LoadGiftFlowTypes()
+    {
+        var result = await ApiService.GetAsync<BerryResult<List<Ledon.BerryShare.Shared.Results.GiftFlowTypeResult>>>("api/v1/giftflowtype/list?pageIndex=1&pageSize=100");
+        giftFlowTypes = result?.Data ?? new List<Ledon.BerryShare.Shared.Results.GiftFlowTypeResult>();
     }
 
     private async Task LoadData()
@@ -263,7 +305,9 @@ else
         {
             Id = user.Id,
             Name = user.Name,
-            Tel = user.Tel
+            Tel = user.Tel,
+            GuildId = user.GuildId,
+            GiftFlowTypeId = user.GiftFlowTypeId
         };
         showEditModal = true;
     }
@@ -278,8 +322,14 @@ else
     {
         if (addUser != null)
         {
-            addUser.GuildId = addUser.GuildId == Guid.Empty ? Guid.Empty : addUser.GuildId;
-            var result = await ApiService.PostAsync<UserEntity>("api/v1/user/create", addUser);
+            var userEntity = new UserEntity
+            {
+                Name = addUser.Name,
+                Tel = addUser.Tel,
+                GuildId = addUser.GuildId == Guid.Empty ? null : addUser.GuildId,
+                GiftFlowTypeId = addUser.GiftFlowTypeId == Guid.Empty ? null : addUser.GiftFlowTypeId
+            };
+            var result = await ApiService.PostAsync<BerryResult<UserResult>>("api/v1/user/create", userEntity);
             await LoadData();
             CloseAddModal();
         }
@@ -289,7 +339,15 @@ else
     {
         if (editUser != null)
         {
-            var result = await ApiService.PutAsync<UserEntity>("api/v1/user/update", editUser);
+            var userEntity = new UserEntity
+            {
+                Id = editUser.Id,
+                Name = editUser.Name,
+                Tel = editUser.Tel,
+                GuildId = editUser.GuildId == Guid.Empty ? null : editUser.GuildId,
+                GiftFlowTypeId = editUser.GiftFlowTypeId == Guid.Empty ? null : editUser.GiftFlowTypeId
+            };
+            var result = await ApiService.PutAsync<BerryResult<UserResult>>("api/v1/user/update", userEntity);
             await LoadData();
             CloseEditModal();
         }

@@ -1,0 +1,938 @@
+
+@page "/gift-flow-order"
+@using Ledon.BerryShare.Shared
+@using Ledon.BerryShare.Shared.Results
+@using Ledon.BerryShare.Shared.Querys
+@using Ledon.BerryShare.Front.Services
+@inject Services.ApiService ApiService
+@inject Services.GuildContextService GuildContext
+@inject Services.ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>流水单管理</h3>
+    <button class="btn btn-primary" @onclick="ShowCreateModal">
+        <i class="fas fa-plus"></i> 新增流水单
+    </button>
+</div>
+
+<!-- 搜索和筛选 -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <input class="form-control" placeholder="搜索流水单..." @bind="query.Search" @bind:event="oninput" />
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" @bind="selectedGuildId">
+            <option value="">全部公会</option>
+            @if (guilds != null)
+            {
+                @foreach (var guild in guilds)
+                {
+                    <option value="@guild.Id">@guild.Name</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input class="form-control" type="date" @bind="queryDate" placeholder="查询日期" />
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
+    </div>
+    <div class="col-md-1">
+        <button class="btn btn-outline-secondary" @onclick="ResetSearch">重置</button>
+    </div>
+</div>
+
+@if (orders == null)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+}
+else if (!orders.Any())
+{
+    <div class="alert alert-info">暂无流水单数据</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>流水单号</th>
+                            <th>描述</th>
+                            <th>公会</th>
+                            <th>总金额</th>
+                            <th>流水条数</th>
+                            <th>创建时间</th>
+                            <th width="200">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in orders)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="badge bg-primary">@order.OrderNumber</span>
+                                </td>
+                                <td>@order.Description</td>
+                                <td>@order.Guild?.Name</td>
+                                <td>
+                                    <span class="text-success fw-bold">¥@order.TotalAmount.ToString("F2")</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">@order.GiftFlows.Count 条</span>
+                                </td>
+                                <td>@order.CreateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-info" @onclick="() => ShowDetailModal(order)" title="查看详情">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" @onclick="() => ShowEditModal(order)" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" @onclick="() => DeleteOrder(order.Id)" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(query.PageIndex == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="PrevPage">上一页</button>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">第 @query.PageIndex 页 / 共 @totalPages 页</span>
+            </li>
+            <li class="page-item @(query.PageIndex == totalPages ? "disabled" : "")">
+                <button class="page-link" @onclick="NextPage">下一页</button>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- 详情弹窗 -->
+<div class="modal fade @(showDetailModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.5);" aria-modal="true" role="dialog" @onclick="CloseDetailModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">流水单详情</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedOrder != null)
+                {
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>流水单号：</strong> @selectedOrder.OrderNumber
+                        </div>
+                        <div class="col-md-6">
+                            <strong>公会：</strong> @selectedOrder.Guild?.Name
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>总金额：</strong> <span class="text-success fw-bold">¥@selectedOrder.TotalAmount.ToString("F2")</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>创建时间：</strong> @selectedOrder.CreateTime.ToString("yyyy-MM-dd HH:mm")
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>描述：</strong> @selectedOrder.Description
+                    </div>
+                    
+                    <h6>流水明细</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>用户</th>
+                                    <th>分成类型</th>
+                                    <th>流水类型</th>
+                                    <th>金额</th>
+                                    <th>分成金额</th>
+                                    <th>税收金额</th>
+                                    <th>最终金额</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var flow in selectedOrder.GiftFlows)
+                                {
+                                    <tr>
+                                        <td>@flow.User?.Name</td>
+                                        <td>@flow.CommissionType?.Name</td>
+                                        <td>@flow.GiftFlowType?.Name</td>
+                                        <td class="text-primary">¥@flow.Amount.ToString("F2")</td>
+                                        <td class="text-warning">¥@flow.CommissionAmount.ToString("F2")</td>
+                                        <td class="text-danger">¥@flow.TaxRateAmount.ToString("F2")</td>
+                                        <td class="text-success fw-bold">¥@flow.FinalAmount.ToString("F2")</td>
+                                        <td>@flow.Remark</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailModal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal fade @(showEditModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.5);" aria-modal="true" role="dialog" @onclick="CloseEditModal">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">@(editOrder?.Id == Guid.Empty ? "新增流水单" : "编辑流水单")</h5>
+                <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (editOrder != null)
+                {
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">公会 <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="editOrder.GuildId" @bind:after="OnGuildChangedAsync">
+                                <option value="">请选择公会</option>
+                                @if (guilds != null)
+                                {
+                                    @foreach (var guild in guilds)
+                                    {
+                                        <option value="@guild.Id">@guild.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">描述</label>
+                            <input class="form-control" @bind="editOrder.Description" placeholder="流水单描述" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>流水明细</h6>
+                        <button class="btn btn-sm btn-primary" @onclick="InitializeUserFlows" disabled="@(editOrder.GuildId == Guid.Empty)">
+                            <i class="fas fa-users"></i> 初始化用户流水
+                        </button>
+                    </div>
+
+                    @if (guildUsers?.Any() == true && commissionTypes?.Any() == true)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="120">用户</th>
+                                        <th width="150">流水类型</th>
+                                        @* 动态生成分成类型列 *@
+                                        @foreach (var commissionType in GetAllCommissionTypes())
+                                        {
+                                            <th width="120" class="text-center">
+                                                @commissionType.Name
+                                                <br/>
+                                                <small class="text-muted">
+                                                    分成@((commissionType.CommissionRate * 100).ToString("F1"))% 
+                                                    税@((commissionType.TaxRate * 100).ToString("F1"))%
+                                                </small>
+                                            </th>
+                                        }
+                                        <th width="120">行小计</th>
+                                        <th>备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var user in guildUsers)
+                                    {
+                                        var userFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == user.GiftFlowTypeId);
+                                        <tr>
+                                            <td class="align-middle">
+                                                <strong>@user.Name</strong>
+                                                @if (userFlowType == null)
+                                                {
+                                                    <br/>
+                                                    <small class="text-warning">未设置流水类型</small>
+                                                }
+                                            </td>
+                                            <td class="align-middle">
+                                                @if (userFlowType != null)
+                                                {
+                                                    <span class="badge bg-info">@userFlowType.Name</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">未设置</span>
+                                                }
+                                            </td>
+                                            @* 为每个分成类型生成输入框 *@
+                                            @foreach (var commissionType in GetAllCommissionTypes())
+                                            {
+                                                var isApplicable = IsCommissionTypeApplicableForUser(user.Id, commissionType.Id);
+                                                var flow = GetUserFlow(user.Id, commissionType.Id);
+                                                <td class="text-center">
+                                                    @if (isApplicable)
+                                                    {
+                                                        <div class="mb-1">
+                                                            <input class="form-control form-control-sm text-center" 
+                                                                   type="number" 
+                                                                   step="0.01" 
+                                                                   @bind="flow.Amount"
+                                                                   @bind:after="StateHasChanged"
+                                                                   placeholder="0.00" />
+                                                        </div>
+                                                        <div class="small text-muted">
+                                                            <div>分成: ¥@flow.CommissionAmount.ToString("F2")</div>
+                                                            <div>税收: ¥@flow.TaxRateAmount.ToString("F2")</div>
+                                                            <div class="text-success fw-bold">实得: ¥@flow.FinalAmount.ToString("F2")</div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted" title="该用户的流水类型不支持此分成类型">-</span>
+                                                    }
+                                                </td>
+                                            }
+                                            <td class="text-center align-middle">
+                                                <strong class="text-primary">¥@GetUserTotalAmount(user.Id).ToString("F2")</strong>
+                                                <br/>
+                                                <small class="text-success">实得: ¥@GetUserFinalAmount(user.Id).ToString("F2")</small>
+                                            </td>
+                                            <td>
+                                                <input class="form-control form-control-sm" 
+                                                       @bind="userRemarks[user.Id]" 
+                                                       placeholder="本用户总备注" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-secondary">
+                                    <tr>
+                                        <td colspan="2" class="text-end"><strong>合计:</strong></td>
+                                        @foreach (var commissionType in GetAllCommissionTypes())
+                                        {
+                                            <td class="text-center">
+                                                <strong>¥@GetCommissionTypeTotal(commissionType.Id).ToString("F2")</strong>
+                                            </td>
+                                        }
+                                        <td class="text-center">
+                                            <strong class="text-primary">¥@editOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")</strong>
+                                            <br/>
+                                            <small class="text-success">实得: ¥@editOrder.GiftFlows.Sum(f => f.FinalAmount).ToString("F2")</small>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>总金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>总分成金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.CommissionAmount).ToString("F2")
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>总税收金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.TaxRateAmount).ToString("F2")
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>总实得金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.FinalAmount).ToString("F2")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (guildUsers?.Any() != true)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            该公会暂无用户数据，请先添加用户
+                        </div>
+                    }
+                    else if (commissionTypes?.Any() != true)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            该公会暂无分成类型数据，请先配置分成类型
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">请先选择公会，然后初始化用户流水</div>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" @onclick="SaveOrder" disabled="@(!CanSave())">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button class="btn btn-secondary" @onclick="CloseEditModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<GiftFlowOrderResult>? pagedOrders;
+    private List<GiftFlowOrderResult> orders = new();
+    private GiftFlowOrderQuery query = new();
+    private int totalPages = 1;
+
+    // 筛选参数
+    private string selectedGuildId = "";
+    private DateTime? queryDate;
+
+    // 数据源
+    private List<GuildResult>? guilds;
+    private List<UserResult>? guildUsers;
+    private List<CommissionTypeResult>? commissionTypes;
+    private List<GiftFlowTypeResult>? giftFlowTypes;
+
+    // 弹窗状态
+    private bool showDetailModal = false;
+    private bool showEditModal = false;
+    private GiftFlowOrderResult? selectedOrder;
+    private GiftFlowOrderResult? editOrder;
+
+    // 用户备注字典
+    private Dictionary<Guid, string> userRemarks = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGuilds();
+        await LoadData();
+    }
+
+    private async Task LoadGuilds()
+    {
+        try
+        {
+            var result = await ApiService.GetAsync<BerryResult<PagedList<GuildResult>>>("api/v1/guild/list?pageSize=100");
+            guilds = result?.Data ?? new List<GuildResult>();
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToastAsync($"加载公会失败: {ex.Message}", ToastType.Error);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            // 设置查询参数
+            if (!string.IsNullOrEmpty(selectedGuildId) && Guid.TryParse(selectedGuildId, out var guildId))
+            {
+                query.GuildId = guildId;
+            }
+            else
+            {
+                query.GuildId = null;
+            }
+
+            query.QueryDate = queryDate;
+
+            var queryString = $"api/v1/giftfloworder/list?pageIndex={query.PageIndex}&pageSize={query.PageSize}";
+            if (!string.IsNullOrEmpty(query.Search))
+                queryString += $"&search={Uri.EscapeDataString(query.Search)}";
+            if (query.GuildId.HasValue)
+                queryString += $"&guildId={query.GuildId}";
+            if (query.QueryDate.HasValue)
+                queryString += $"&queryDate={query.QueryDate.Value:yyyy-MM-dd}";
+
+            var result = await ApiService.GetAsync<BerryResult<List<GiftFlowOrderResult>>>(queryString);
+            pagedOrders = result?.Data;
+            orders = pagedOrders ?? new List<GiftFlowOrderResult>();
+            totalPages = (result?.TotalCount / query.PageSize) ?? 1;
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToastAsync($"加载数据失败: {ex.Message}", ToastType.Error);
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        query.PageIndex = 1;
+        await LoadData();
+    }
+
+    private async Task ResetSearch()
+    {
+        query = new GiftFlowOrderQuery();
+        selectedGuildId = "";
+        queryDate = null;
+        await LoadData();
+    }
+
+    private async Task PrevPage()
+    {
+        if (query.PageIndex > 1)
+        {
+            query.PageIndex--;
+            await LoadData();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (query.PageIndex < totalPages)
+        {
+            query.PageIndex++;
+            await LoadData();
+        }
+    }
+
+    private void ShowDetailModal(GiftFlowOrderResult order)
+    {
+        selectedOrder = order;
+        showDetailModal = true;
+    }
+
+    private void CloseDetailModal()
+    {
+        showDetailModal = false;
+        selectedOrder = null;
+    }
+
+    private async Task ShowCreateModal()
+    {
+        editOrder = new GiftFlowOrderResult
+        {
+            Id = Guid.Empty,
+            GiftFlows = new List<GiftFlowResult>(),
+            GuildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : Guid.Empty
+        };
+
+        userRemarks.Clear();
+
+        if (editOrder.GuildId != Guid.Empty)
+        {
+            await LoadGuildData(editOrder.GuildId);
+        }
+
+        showEditModal = true;
+        StateHasChanged(); // 确保UI更新
+    }
+
+    private async Task ShowEditModal(GiftFlowOrderResult order)
+    {
+        editOrder = new GiftFlowOrderResult
+        {
+            Id = order.Id,
+            Description = order.Description,
+            GuildId = order.GuildId,
+            GiftFlows = order.GiftFlows.Select(f => new GiftFlowResult
+            {
+                Id = f.Id,
+                UserId = f.UserId,
+                CommissionTypeId = f.CommissionTypeId,
+                GiftFlowTypeId = f.GiftFlowTypeId ?? Guid.Empty,
+                Amount = f.Amount,
+                Remark = f.Remark,
+                User = f.User,
+                CommissionType = f.CommissionType,
+                GiftFlowType = f.GiftFlowType
+            }).ToList()
+        };
+
+        // 先加载公会数据
+        await LoadGuildData(editOrder.GuildId);
+
+        // 初始化用户备注字典
+        userRemarks.Clear();
+        if (guildUsers != null)
+        {
+            foreach (var user in guildUsers)
+            {
+                var userFlows = order.GiftFlows.Where(f => f.UserId == user.Id);
+                if (userFlows.Any())
+                {
+                    // 使用第一个流水记录的备注作为用户备注
+                    userRemarks[user.Id] = userFlows.First().Remark ?? string.Empty;
+                }
+                else
+                {
+                    userRemarks[user.Id] = string.Empty;
+                }
+            }
+        }
+
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editOrder = null;
+        guildUsers = null;
+        commissionTypes = null;
+        giftFlowTypes = null;
+        userRemarks.Clear();
+    }
+
+    private async Task OnGuildChangedAsync()
+    {
+        if (editOrder != null && editOrder.GuildId != Guid.Empty)
+        {
+            editOrder.GiftFlows.Clear();
+            userRemarks.Clear();
+            await LoadGuildData(editOrder.GuildId);
+        }
+        else
+        {
+            // 清除数据
+            guildUsers = null;
+            commissionTypes = null;
+            giftFlowTypes = null;
+            userRemarks.Clear();
+        }
+        StateHasChanged(); // 确保UI更新
+    }
+
+    private async Task LoadGuildData(Guid guildId)
+    {
+        try
+        {
+            // 加载公会用户
+            var userResult = await ApiService.GetAsync<BerryResult<PagedList<UserResult>>>($"api/v1/user/list?guildId={guildId}&pageSize=100");
+            guildUsers = userResult?.Data ?? new List<UserResult>();
+
+            // 加载分成类型
+            var commissionResult = await ApiService.GetAsync<BerryResult<PagedList<CommissionTypeResult>>>($"api/v1/commissiontype/list?guildId={guildId}&pageSize=100");
+            commissionTypes = commissionResult?.Data ?? new List<CommissionTypeResult>();
+
+            // 加载流水类型（首先获取列表）
+            var giftFlowTypeListResult = await ApiService.GetAsync<BerryResult<PagedList<GiftFlowTypeResult>>>($"api/v1/giftflowtype/list?guildId={guildId}&pageSize=100");
+            var giftFlowTypeList = giftFlowTypeListResult?.Data ?? new List<GiftFlowTypeResult>();
+
+            // 为每个流水类型单独获取详细信息（包含分成类型关联）
+            giftFlowTypes = new List<GiftFlowTypeResult>();
+            foreach (var flowType in giftFlowTypeList)
+            {
+                try
+                {
+                    var detailResult = await ApiService.GetAsync<BerryResult<GiftFlowTypeResult>>($"api/v1/giftflowtype/{flowType.Id}");
+                    if (detailResult?.Data != null)
+                    {
+                        giftFlowTypes.Add(detailResult.Data);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"加载流水类型详情失败 {flowType.Id}: {ex.Message}");
+                    // 即使某个流水类型加载失败，也添加基本信息
+                    giftFlowTypes.Add(flowType);
+                }
+            }
+
+            // 调试信息
+            Console.WriteLine($"加载公会数据 - 用户数: {guildUsers?.Count}, 分成类型数: {commissionTypes?.Count}, 流水类型数: {giftFlowTypes?.Count}");
+            
+            // 调试每个流水类型的分成类型关联
+            if (giftFlowTypes != null)
+            {
+                foreach (var flowType in giftFlowTypes)
+                {
+                    Console.WriteLine($"流水类型 {flowType.Name}: 关联分成类型数 {flowType.CommissionTypes?.Count ?? 0}");
+                    if (flowType.CommissionTypes?.Any() == true)
+                    {
+                        foreach (var ct in flowType.CommissionTypes)
+                        {
+                            Console.WriteLine($"  - {ct.Name}");
+                        }
+                    }
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToastAsync($"加载公会数据失败: {ex.Message}", ToastType.Error);
+            Console.WriteLine($"加载公会数据异常: {ex}");
+        }
+    }
+
+    private void OnUserChanged(int index)
+    {
+        if (editOrder?.GiftFlows != null && index < editOrder.GiftFlows.Count)
+        {
+            var flow = editOrder.GiftFlows[index];
+            var user = guildUsers?.FirstOrDefault(u => u.Id == flow.UserId);
+            if (user != null)
+            {
+                flow.User = user;
+
+                // 如果用户有默认的流水类型，自动设置
+                if (user.GiftFlowTypeId.HasValue)
+                {
+                    flow.GiftFlowTypeId = user.GiftFlowTypeId.Value;
+                    flow.GiftFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == user.GiftFlowTypeId.Value);
+                }
+
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task InitializeUserFlows()
+    {
+        if (editOrder == null || guildUsers == null || commissionTypes == null) return;
+
+        editOrder.GiftFlows.Clear();
+        userRemarks.Clear();
+
+        // 为每个用户初始化备注
+        foreach (var user in guildUsers)
+        {
+            userRemarks[user.Id] = string.Empty;
+            
+            if (user.GiftFlowTypeId.HasValue)
+            {
+                var userFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == user.GiftFlowTypeId);
+                if (userFlowType?.CommissionTypes?.Any() == true)
+                {
+                    // 为该用户的每个适用分成类型创建流水记录
+                    foreach (var commissionType in userFlowType.CommissionTypes)
+                    {
+                        editOrder.GiftFlows.Add(new GiftFlowResult
+                        {
+                            Id = Guid.Empty,
+                            UserId = user.Id,
+                            User = user,
+                            CommissionTypeId = commissionType.Id,
+                            CommissionType = commissionType,
+                            GiftFlowTypeId = user.GiftFlowTypeId.Value,
+                            GiftFlowType = userFlowType,
+                            Amount = 0,
+                            FlowDate = DateTime.Now,
+                            FlowNumber = string.Empty, // 将在保存时生成
+                            CreateTime = DateTime.Now,
+                            UpdateTime = DateTime.Now
+                        });
+                    }
+                }
+            }
+        }
+
+        // 强制刷新UI
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    private List<CommissionTypeResult> GetAllCommissionTypes()
+    {
+        if (commissionTypes == null) return new List<CommissionTypeResult>();
+
+        // 直接使用加载的分成类型，确保顺序一致
+        return commissionTypes.OrderBy(ct => ct.Name).ToList();
+    }
+
+    private GiftFlowResult GetUserFlow(Guid userId, Guid commissionTypeId)
+    {
+        if (editOrder?.GiftFlows == null) return new GiftFlowResult();
+
+        // 确保用户备注字典中有这个用户
+        if (!userRemarks.ContainsKey(userId))
+        {
+            userRemarks[userId] = string.Empty;
+        }
+
+        var flow = editOrder.GiftFlows.FirstOrDefault(f => f.UserId == userId && f.CommissionTypeId == commissionTypeId);
+        if (flow == null)
+        {
+            // 如果不存在，创建一个新的
+            var user = guildUsers?.FirstOrDefault(u => u.Id == userId);
+            var commissionType = commissionTypes?.FirstOrDefault(ct => ct.Id == commissionTypeId);
+            var userFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == user?.GiftFlowTypeId);
+            
+            flow = new GiftFlowResult
+            {
+                Id = Guid.Empty,
+                UserId = userId,
+                User = user,
+                CommissionTypeId = commissionTypeId,
+                CommissionType = commissionType,
+                GiftFlowTypeId = user?.GiftFlowTypeId ?? Guid.Empty,
+                GiftFlowType = userFlowType,
+                Amount = 0,
+                FlowDate = DateTime.Now,
+                FlowNumber = string.Empty, // 将在保存时生成
+                CreateTime = DateTime.Now,
+                UpdateTime = DateTime.Now
+            };
+            
+            editOrder.GiftFlows.Add(flow);
+        }
+        
+        return flow;
+    }
+
+    private decimal GetUserTotalAmount(Guid userId)
+    {
+        return editOrder?.GiftFlows?.Where(f => f.UserId == userId).Sum(f => f.Amount) ?? 0;
+    }
+
+    private decimal GetUserFinalAmount(Guid userId)
+    {
+        return editOrder?.GiftFlows?.Where(f => f.UserId == userId).Sum(f => f.FinalAmount) ?? 0;
+    }
+
+    private decimal GetCommissionTypeTotal(Guid commissionTypeId)
+    {
+        return editOrder?.GiftFlows?.Where(f => f.CommissionTypeId == commissionTypeId).Sum(f => f.Amount) ?? 0;
+    }
+
+    private bool CanSave()
+    {
+        return editOrder != null &&
+               editOrder.GuildId != Guid.Empty &&
+               editOrder.GiftFlows?.Any(f => f.Amount > 0) == true;
+    }
+
+    private async Task SaveOrder()
+    {
+        if (editOrder == null || !CanSave())
+            return;
+
+        try
+        {
+            // 应用用户备注到流水记录
+            foreach (var kvp in userRemarks)
+            {
+                var userFlows = editOrder.GiftFlows.Where(f => f.UserId == kvp.Key);
+                foreach (var flow in userFlows)
+                {
+                    flow.Remark = kvp.Value;
+                }
+            }
+
+            // 只保留有金额的流水记录
+            editOrder.GiftFlows = editOrder.GiftFlows.Where(f => f.Amount > 0).ToList();
+            editOrder.TotalAmount = editOrder.GiftFlows.Sum(f => f.Amount);
+
+            // 为新创建的流水单生成必填字段
+            if (editOrder.Id == Guid.Empty)
+            {
+                // 生成流水单号
+                editOrder.OrderNumber = $"FS{DateTime.Now:yyyyMMddHHmmss}";
+                
+                // 生成标题（如果没有描述，使用默认标题）
+                editOrder.Title = string.IsNullOrEmpty(editOrder.Description) 
+                    ? $"流水单-{DateTime.Now:yyyy-MM-dd HH:mm}" 
+                    : editOrder.Description;
+                
+                // 设置日期
+                editOrder.OrderDate = DateTime.Now;
+                editOrder.CreateTime = DateTime.Now;
+                editOrder.UpdateTime = DateTime.Now;
+
+                // 为每个流水记录生成流水号
+                for (int i = 0; i < editOrder.GiftFlows.Count; i++)
+                {
+                    var flow = editOrder.GiftFlows[i];
+                    flow.FlowNumber = $"{editOrder.OrderNumber}-{(i + 1):D3}";
+                    flow.FlowDate = DateTime.Now;
+                    flow.CreateTime = DateTime.Now;
+                    flow.UpdateTime = DateTime.Now;
+                }
+            }
+            else
+            {
+                // 更新现有流水单
+                editOrder.UpdateTime = DateTime.Now;
+                
+                // 为新增的流水记录生成流水号
+                var existingFlowNumbers = editOrder.GiftFlows.Where(f => !string.IsNullOrEmpty(f.FlowNumber)).Count();
+                for (int i = 0; i < editOrder.GiftFlows.Count; i++)
+                {
+                    var flow = editOrder.GiftFlows[i];
+                    if (string.IsNullOrEmpty(flow.FlowNumber))
+                    {
+                        flow.FlowNumber = $"{editOrder.OrderNumber}-{(existingFlowNumbers + i + 1):D3}";
+                        flow.FlowDate = DateTime.Now;
+                        flow.CreateTime = DateTime.Now;
+                    }
+                    flow.UpdateTime = DateTime.Now;
+                }
+            }
+
+            BerryResult<GiftFlowOrderResult>? result;
+            if (editOrder.Id == Guid.Empty)
+            {
+                result = await ApiService.PostAsync<BerryResult<GiftFlowOrderResult>>("api/v1/giftfloworder/create", editOrder);
+                await ToastService.ShowToastAsync("流水单创建成功", ToastType.Info);
+            }
+            else
+            {
+                result = await ApiService.PutAsync<BerryResult<GiftFlowOrderResult>>("api/v1/giftfloworder/update", editOrder);
+                await ToastService.ShowToastAsync("流水单更新成功", ToastType.Info);
+            }
+
+            CloseEditModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await ToastService.ShowToastAsync($"保存失败: {ex.Message}", ToastType.Error);
+        }
+    }
+
+    private bool IsCommissionTypeApplicableForUser(Guid userId, Guid commissionTypeId)
+    {
+        var user = guildUsers?.FirstOrDefault(u => u.Id == userId);
+        if (user?.GiftFlowTypeId == null) 
+        {
+            Console.WriteLine($"用户 {user?.Name} 没有设置流水类型");
+            return false;
+        }
+
+        var userFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == user.GiftFlowTypeId);
+        if (userFlowType == null)
+        {
+            Console.WriteLine($"用户 {user.Name} 的流水类型 {user.GiftFlowTypeId} 不存在");
+            return false;
+        }
+
+        var result = userFlowType.CommissionTypes?.Any(ct => ct.Id == commissionTypeId) == true;
+        Console.WriteLine($"用户 {user.Name} 流水类型 {userFlowType.Name} 是否支持分成类型 {commissionTypeId}: {result}");
+        
+        return result;
+    }
+
+    private async Task DeleteOrder(Guid orderId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "确定要删除这个流水单吗？"))
+        {
+            try
+            {
+                await ApiService.DeleteAsync<BerryResult<object>>($"api/v1/giftfloworder/{orderId}");
+                await ToastService.ShowToastAsync("流水单删除成功", ToastType.Info);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                await ToastService.ShowToastAsync($"删除失败: {ex.Message}", ToastType.Error);
+            }
+        }
+    }
+}

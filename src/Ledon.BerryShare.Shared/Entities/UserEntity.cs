@@ -38,5 +38,8 @@ public class UserEntity : EntityBase
     public virtual GuildEntity? Guild { get; set; }
 
 
-    public virtual ICollection<GiftFlowEntity> GiftFlowTypes { get; set; } = new List<GiftFlowEntity>();
+    // public virtual ICollection<GiftFlowEntity> GiftFlowTypes { get; set; } = new List<GiftFlowEntity>();
+
+    public Guid? GiftFlowTypeId { get; set; }
+    public virtual GiftFlowTypeEntity? GiftFlowType { get; set; }
 }

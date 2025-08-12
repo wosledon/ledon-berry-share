@@ -14,23 +14,6 @@
                 <div class="top-row px-4">
                     <a href="https://learn.microsoft.com/aspnet/core/"
                         target="_blank">About</a>
-
-                    @if (!IsGuildPage)
-                    {
-                        <div class="position-relative" style="display:inline-block;margin-left:20px;width:220px;">
-                            <input class="form-control mb-1" style="width:100%;" placeholder="搜索公会..." value="@guildSearch" @oninput="OnGuildSearchInput" @onfocus="ShowDropdown" @onblur="HideDropdownWithDelay" />
-                            @if (showDropdown && guilds.Count > 0)
-                            {
-                                <ul class="list-group position-absolute w-100" style="z-index:1000;max-height:220px;overflow-y:auto;">
-                                    @foreach (var g in guilds)
-                                    {
-                                        <li class="list-group-item list-group-item-action" style="cursor:pointer;" @onclick="() => SelectGuild(g)">@g.Name</li>
-                                    }
-                                </ul>
-                            }
-                        </div>
-                    }
-
                 </div>
 
                 <article class="content px-4">
@@ -47,53 +30,6 @@
 </AuthorizeView>
 
 @code {
-    [Inject] private Services.ApiService ApiService { get; set; } = default!;
-    [Inject] private Services.GuildContextService GuildContext { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-    private List<Ledon.BerryShare.Shared.Entities.GuildEntity> guilds = new();
-    private Guid currentGuildId = Guid.Empty;
-    private string guildSearch = string.Empty;
-    private bool showDropdown = false;
-    private bool IsGuildPage => Navigation.Uri.Contains("/guild") || Navigation.Uri.Contains("/user");
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadGuilds();
-        currentGuildId = GuildContext.CurrentGuildId;
-    }
-
-    private async Task LoadGuilds()
-    {
-        var result = await ApiService.GetAsync<BerryResult<List<GuildEntity>>>($"api/v1/guild/list?pageIndex=1&pageSize=100&search={guildSearch}");
-        guilds = result?.Data ?? new List<Ledon.BerryShare.Shared.Entities.GuildEntity>();
-        StateHasChanged();
-    }
-
-    private async Task OnGuildSearchInput(ChangeEventArgs e)
-    {
-        guildSearch = e.Value?.ToString() ?? string.Empty;
-        await LoadGuilds();
-    }
-
-    private void ShowDropdown()
-    {
-        showDropdown = true;
-    }
-
-    private async void HideDropdownWithDelay()
-    {
-        // 延迟隐藏，避免点击下拉项时丢失焦点
-        await Task.Delay(200);
-        showDropdown = false;
-        StateHasChanged();
-    }
-
-    private void SelectGuild(GuildEntity g)
-    {
-        currentGuildId = g.Id;
-        GuildContext.SetGuildId(g.Id);
-        guildSearch = g.Name;
-        showDropdown = false;
-    }
 }

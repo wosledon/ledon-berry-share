@@ -92,7 +92,22 @@ else
                     <div><strong>名称：</strong> @selectedType.Name</div>
                     <div><strong>描述：</strong> @selectedType.Description</div>
                     <div><strong>所属公会：</strong> @selectedType.GuildName</div>
+                    <div><strong>流水组成：</strong> @selectedType.CommissionTypeFlow</div>
                     <div><strong>创建时间：</strong> @selectedType.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
+                    @if (selectedType.CommissionTypes != null && selectedType.CommissionTypes.Any())
+                    {
+                        <div><strong>流水类型详情：</strong></div>
+                        <div class="mt-2">
+                            @foreach (var ct in selectedType.CommissionTypes)
+                            {
+                                <div class="border p-2 mb-1 rounded">
+                                    <strong>@ct.Name</strong> - @ct.Description
+                                    <br />
+                                    <small class="text-muted">佣金率: @ct.CommissionRate% | 税率: @ct.TaxRate%</small>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             </div>
             <div class="modal-footer">
@@ -104,7 +119,7 @@ else
 
 <!-- 编辑弹窗 -->
 <div class="modal fade @(showEditModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseEditModal">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
                 <h5 class="modal-title">编辑流水组成</h5>
@@ -131,6 +146,39 @@ else
                             }
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">流水类型组成</label>
+                        <div class="border p-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold">已选择的流水类型：</span>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="ShowCommissionTypeSelector">
+                                    <i class="fas fa-plus"></i> 添加流水类型
+                                </button>
+                            </div>
+                            @if (editCommissionTypes.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var ct in editCommissionTypes)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@ct.Name</strong> - @ct.Description
+                                                <br />
+                                                <small class="text-muted">佣金率: @ct.CommissionRate% | 税率: @ct.TaxRate%</small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveCommissionType(ct)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted text-center">尚未添加任何流水类型</div>
+                            }
+                        </div>
+                    </div>
                 }
             </div>
             <div class="modal-footer">
@@ -143,7 +191,7 @@ else
 
 <!-- 新增弹窗 -->
 <div class="modal fade @(showAddModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseAddModal">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" @onclick:stopPropagation="true">
             <div class="modal-header">
                 <h5 class="modal-title">新增流水组成</h5>
@@ -170,11 +218,107 @@ else
                             }
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">流水类型组成</label>
+                        <div class="border p-3 rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold">已选择的流水类型：</span>
+                                <button type="button" class="btn btn-sm btn-success" @onclick="ShowCommissionTypeSelector">
+                                    <i class="fas fa-plus"></i> 添加流水类型
+                                </button>
+                            </div>
+                            @if (addCommissionTypes.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var ct in addCommissionTypes)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@ct.Name</strong> - @ct.Description
+                                                <br />
+                                                <small class="text-muted">佣金率: @ct.CommissionRate% | 税率: @ct.TaxRate%</small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveCommissionType(ct)">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted text-center">尚未添加任何流水类型</div>
+                            }
+                        </div>
+                    </div>
                 }
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" @onclick="SaveAdd">保存</button>
                 <button class="btn btn-secondary" @onclick="CloseAddModal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 流水类型选择弹窗 -->
+<div class="modal fade @(showCommissionSelectorModal ? "show d-block" : "")" tabindex="-1" style="background:rgba(0,0,0,0.3);" aria-modal="true" role="dialog" @onclick="CloseCommissionSelectorModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h5 class="modal-title">选择流水类型</h5>
+                <button type="button" class="btn-close" @onclick="CloseCommissionSelectorModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input class="form-control" placeholder="搜索流水类型..." @bind="commissionSearch" @bind:event="oninput" />
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" @bind="selectedCommissionGuildId">
+                            <option value="">全部公会</option>
+                            @foreach (var g in guilds)
+                            {
+                                <option value="@g.Id">@g.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary" @onclick="SearchCommissionTypes">搜索</button>
+                    </div>
+                </div>
+                @if (availableCommissionTypes == null)
+                {
+                    <p>加载中...</p>
+                }
+                else
+                {
+                    <div class="row">
+                        @foreach (var ct in availableCommissionTypes.Where(ct => !IsCommissionTypeSelected(ct)))
+                        {
+                            <div class="col-md-6 mb-2">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">@ct.Name</h6>
+                                        <p class="card-text">@ct.Description</p>
+                                        <small class="text-muted">佣金率: @ct.CommissionRate% | 税率: @ct.TaxRate%</small>
+                                        <br />
+                                        <button class="btn btn-sm btn-primary mt-2" @onclick="() => AddCommissionType(ct)">
+                                            <i class="fas fa-plus"></i> 添加
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @if (!availableCommissionTypes.Where(ct => !IsCommissionTypeSelected(ct)).Any())
+                    {
+                        <div class="text-center text-muted">没有更多可选择的流水类型</div>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseCommissionSelectorModal">关闭</button>
             </div>
         </div>
     </div>
@@ -192,9 +336,17 @@ else
 
     private GiftFlowTypeResult? editType;
     private bool showEditModal = false;
+    private List<CommissionTypeResult> editCommissionTypes = new();
 
     private GiftFlowTypeResult? addType;
     private bool showAddModal = false;
+    private List<CommissionTypeResult> addCommissionTypes = new();
+
+    // 流水类型选择相关
+    private bool showCommissionSelectorModal = false;
+    private List<CommissionTypeResult>? availableCommissionTypes;
+    private string commissionSearch = string.Empty;
+    private Guid? selectedCommissionGuildId = null;
 
     private List<GuildResult> guilds = new();
     private Guid? selectedGuildId = null;
@@ -244,9 +396,11 @@ else
         }
     }
 
-    private void ShowDetail(GiftFlowTypeResult type)
+    private async Task ShowDetail(GiftFlowTypeResult type)
     {
-        selectedType = type;
+        // 获取详细信息，包括流水类型
+        var result = await ApiService.GetAsync<BerryResult<GiftFlowTypeResult>>($"api/v1/giftflowtype/{type.Id}");
+        selectedType = result?.Data ?? type;
         showDetailModal = true;
     }
 
@@ -256,28 +410,53 @@ else
         selectedType = null;
     }
 
-    private void ShowEdit(GiftFlowTypeResult type)
+    private async Task ShowEdit(GiftFlowTypeResult type)
     {
         editType = new GiftFlowTypeResult
         {
             Id = type.Id,
             Name = type.Name,
-            Description = type.Description
+            Description = type.Description,
+            GuildId = type.GuildId
         };
+        
+        // 加载当前流水组成的流水类型
+        await LoadEditCommissionTypes(type.Id);
         showEditModal = true;
+    }
+
+    private async Task LoadEditCommissionTypes(Guid giftFlowTypeId)
+    {
+        var result = await ApiService.GetAsync<BerryResult<GiftFlowTypeResult>>($"api/v1/giftflowtype/{giftFlowTypeId}");
+        editCommissionTypes = result?.Data?.CommissionTypes ?? new List<CommissionTypeResult>();
     }
 
     private void CloseEditModal()
     {
         showEditModal = false;
         editType = null;
+        editCommissionTypes.Clear();
     }
 
     private async Task SaveEdit()
     {
         if (editType != null)
         {
+            // 先更新基本信息
             var result = await ApiService.PutAsync<GiftFlowTypeResult>("api/v1/giftflowtype/update", editType);
+            
+            // 然后更新流水类型组成
+            if (editCommissionTypes.Any())
+            {
+                var commissionIds = editCommissionTypes.Select(ct => ct.Id).ToList();
+                await ApiService.PostAsync<object>($"api/v1/commissiontype/bind/{editType.Id}", commissionIds);
+            }
+            else
+            {
+                // 如果没有选择任何流水类型，则解绑所有
+                await ApiService.DeleteAsync<object>($"api/v1/commissiontype/unbind/{editType.Id}");
+            }
+            
             await LoadData();
             CloseEditModal();
         }
@@ -287,6 +466,7 @@ else
     {
         addType = new GiftFlowTypeResult();
         addType.GuildId = selectedGuildId ?? Guid.Empty;
+        addCommissionTypes.Clear();
         showAddModal = true;
     }
 
@@ -294,15 +474,85 @@ else
     {
         showAddModal = false;
         addType = null;
+        addCommissionTypes.Clear();
     }
 
     private async Task SaveAdd()
     {
         if (addType != null)
         {
-            var result = await ApiService.PostAsync<GiftFlowTypeResult>("api/v1/giftflowtype/create", addType);
+            // 先创建流水组成
+            var entity = new GiftFlowTypeEntity
+            {
+                Name = addType.Name,
+                Description = addType.Description,
+                GuildId = addType.GuildId
+            };
+            
+            var result = await ApiService.PostAsync<BerryResult<GiftFlowTypeResult>>("api/v1/giftflowtype/create", entity);
+            
+            // 如果有选择的流水类型，绑定它们
+            if (result?.Data != null && addCommissionTypes.Any())
+            {
+                var commissionIds = addCommissionTypes.Select(ct => ct.Id).ToList();
+                await ApiService.PostAsync<object>($"api/v1/commissiontype/bind/{result.Data.Id}", commissionIds);
+            }
+            
             await LoadData();
             CloseAddModal();
+        }
+    }
+
+    // 流水类型选择相关方法
+    private async Task ShowCommissionTypeSelector()
+    {
+        await LoadCommissionTypes();
+        showCommissionSelectorModal = true;
+    }
+
+    private void CloseCommissionSelectorModal()
+    {
+        showCommissionSelectorModal = false;
+        availableCommissionTypes = null;
+        commissionSearch = string.Empty;
+        selectedCommissionGuildId = null;
+    }
+
+    private async Task LoadCommissionTypes()
+    {
+        var guildParam = selectedCommissionGuildId.HasValue ? $"&guildId={selectedCommissionGuildId}" : "";
+        var query = $"api/v1/commissiontype/list?search={commissionSearch}{guildParam}&pageIndex=1&pageSize=100";
+        var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeResult>>>(query);
+        availableCommissionTypes = result?.Data ?? new List<CommissionTypeResult>();
+    }
+
+    private async Task SearchCommissionTypes()
+    {
+        await LoadCommissionTypes();
+    }
+
+    private bool IsCommissionTypeSelected(CommissionTypeResult ct)
+    {
+        var currentList = showEditModal ? editCommissionTypes : addCommissionTypes;
+        return currentList.Any(x => x.Id == ct.Id);
+    }
+
+    private void AddCommissionType(CommissionTypeResult ct)
+    {
+        var currentList = showEditModal ? editCommissionTypes : addCommissionTypes;
+        if (!currentList.Any(x => x.Id == ct.Id))
+        {
+            currentList.Add(ct);
+        }
+    }
+
+    private void RemoveCommissionType(CommissionTypeResult ct)
+    {
+        var currentList = showEditModal ? editCommissionTypes : addCommissionTypes;
+        var item = currentList.FirstOrDefault(x => x.Id == ct.Id);
+        if (item != null)
+        {
+            currentList.Remove(item);
         }
     }
 }

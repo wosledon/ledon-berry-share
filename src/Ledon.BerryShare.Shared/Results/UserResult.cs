@@ -11,5 +11,8 @@ namespace Ledon.BerryShare.Shared.Results
         public string Tel { get; set; } = string.Empty;
         public string GuildName { get; set; } = string.Empty;
         public DateTime CreateAt { get; set; }
+
+        public Guid? GiftFlowTypeId { get; set; }
+        public string GiftFlowTypeName { get; set; } = string.Empty;
     }
 }
