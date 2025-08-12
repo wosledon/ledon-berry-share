@@ -12,13 +12,13 @@ public class GiftFlowOrderResult
     public decimal TotalAmount { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
-    
+
     // 流水单包含的流水信息
     public List<GiftFlowResult> GiftFlows { get; set; } = new();
-    
+
     public Guid GuildId { get; set; }
     // 工会信息
-    public GuildResult? Guild { get; set; }
+    public string GuildName { get; set; } = default!;
 }
 
 public class GiftFlowResult

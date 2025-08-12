@@ -56,13 +56,24 @@ public class GiftFlowOrderController : ApiControllerBase
             orders = orders.Where(o => o.OrderAt <= query.EndDate.Value.Date.AddDays(1).AddTicks(-1));
         }
 
+        // 先获取分页的实体数据
         var pagedOrders = await orders
             .OrderByDescending(o => o.OrderAt)
             .ToPagedListAsync(query.PageIndex, query.PageSize);
 
-        // 转换为Result对象
+        // 在内存中映射为Result对象
+        var resultList = pagedOrders.Select(o => MapToResult(o)).ToList();
 
-        return BerryOk(pagedOrders);
+        // 创建新的分页结果
+        var pagedResult = new PagedList<GiftFlowOrderResult>
+        {
+            PageIndex = pagedOrders.PageIndex,
+            PageSize = pagedOrders.PageSize,
+            TotalCount = pagedOrders.TotalCount
+        };
+        pagedResult.AddRange(resultList);
+
+        return BerryOk(pagedResult);
     }
 
     /// <summary>
@@ -299,13 +310,8 @@ public class GiftFlowOrderController : ApiControllerBase
             TotalAmount = entity.Amount,
             CreateTime = entity.CreateAt,
             UpdateTime = entity.ModifyAt ?? entity.CreateAt,
-            Guild = entity.Guild == null ? null : new GuildResult
-            {
-                Id = entity.Guild.Id,
-                Name = entity.Guild.Name,
-                Description = entity.Guild.Description,
-                CreateAt = entity.Guild.CreateAt
-            },
+            GuildId = entity.GuildId,
+            GuildName = entity.Guild?.Name ?? string.Empty,
             GiftFlows = entity.GiftFlows?.Select(MapGiftFlowToResult).ToList() ?? new List<GiftFlowResult>()
         };
     }
@@ -324,12 +330,18 @@ public class GiftFlowOrderController : ApiControllerBase
             Remark = entity.Remark,
             CreateTime = entity.CreateAt,
             UpdateTime = entity.ModifyAt ?? entity.CreateAt,
+            UserId = entity.UserId,
+            CommissionTypeId = entity.CommissionTypeId,
+            GiftFlowTypeId = entity.GiftFlowTypeId,
             User = entity.User == null ? null : new UserResult
             {
                 Id = entity.User.Id,
                 Name = entity.User.Name,
                 Tel = entity.User.Tel,
                 GuildId = entity.User.GuildId ?? Guid.Empty,
+                GuildName = entity.User.Guild?.Name ?? string.Empty,
+                GiftFlowTypeId = entity.User.GiftFlowTypeId,
+                GiftFlowTypeName = entity.User.GiftFlowType?.Name ?? string.Empty,
                 CreateAt = entity.User.CreateAt
             },
             CommissionType = entity.CommissionType == null ? null : new CommissionTypeResult
@@ -349,6 +361,7 @@ public class GiftFlowOrderController : ApiControllerBase
                 Name = entity.GiftFlowType.Name,
                 Description = entity.GiftFlowType.Description,
                 GuildId = entity.GiftFlowType.GuildId,
+                GuildName = entity.GiftFlowType.Guild?.Name ?? string.Empty,
                 CreateAt = entity.GiftFlowType.CreateAt
             }
         };

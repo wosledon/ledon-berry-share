@@ -81,7 +81,7 @@ else
                                     <span class="badge bg-primary">@order.OrderNumber</span>
                                 </td>
                                 <td>@order.Description</td>
-                                <td>@order.Guild?.Name</td>
+                                <td>@order.GuildName</td>
                                 <td>
                                     <span class="text-success fw-bold">¥@order.TotalAmount.ToString("F2")</span>
                                 </td>
@@ -142,7 +142,7 @@ else
                             <strong>流水单号：</strong> @selectedOrder.OrderNumber
                         </div>
                         <div class="col-md-6">
-                            <strong>公会：</strong> @selectedOrder.Guild?.Name
+                            <strong>公会：</strong> @selectedOrder.GuildName
                         </div>
                     </div>
                     <div class="row mb-3">
