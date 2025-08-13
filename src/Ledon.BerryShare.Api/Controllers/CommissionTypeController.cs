@@ -69,7 +69,7 @@ public class CommissionTypeController : ApiControllerBase
         existingComposition.Name = composition.Name;
         existingComposition.Description = composition.Description;
         await _db.SaveChangesAsync();
-        return BerryOk(existingComposition);
+        return BerryOk();
     }
 
     [HttpDelete("{id}")]
@@ -98,7 +98,23 @@ public class CommissionTypeController : ApiControllerBase
         }
         _db.Add(composition);
         await _db.SaveChangesAsync();
-        return BerryOk(composition);
+
+        var result = new CommissionTypeResult
+        {
+            Id = composition.Id,
+            Name = composition.Name,
+            Description = composition.Description,
+            GuildId = composition.GuildId,
+            GuildName = composition.Guild != null ? composition.Guild.Name : string.Empty,
+            CommissionRate = composition.CommissionRate,
+            TaxRate = composition.TaxRate,
+            IsActive = composition.IsActive,
+            IsDeleted = composition.IsDeleted,
+            CreateAt = composition.CreateAt,
+            ModifyAt = composition.ModifyAt
+        };
+
+        return BerryOk(result);
     }
 
     [HttpPost("bind/{giftFlowTypeId}")]

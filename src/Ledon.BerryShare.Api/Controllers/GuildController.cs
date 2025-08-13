@@ -6,6 +6,7 @@ using Ledon.BerryShare.Shared.Querys;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Ledon.BerryShare.Shared.Results;
 
 namespace Ledon.BerryShare.Api.Controllers;
 
@@ -71,7 +72,17 @@ public class GuildController : ApiControllerBase
         existingGuild.Description = guild.Description;
         existingGuild.Avatar = guild.Avatar;
         await _db.SaveChangesAsync();
-        return BerryOk(existingGuild);
+
+        var result = new GuildResult
+        {
+            Id = existingGuild.Id,
+            Name = existingGuild.Name,
+            Description = existingGuild.Description,
+            Avatar = existingGuild.Avatar,
+            CreateAt = existingGuild.CreateAt
+        };
+
+        return BerryOk(result);
     }
 
     [HttpDelete("{id}")]
@@ -101,6 +112,16 @@ public class GuildController : ApiControllerBase
         guild.Id = Guid.NewGuid();
         _db.Add(guild);
         await _db.SaveChangesAsync();
-        return BerryOk(guild);
+
+        var result = new GuildResult
+        {
+            Id = guild.Id,
+            Name = guild.Name,
+            Description = guild.Description,
+            Avatar = guild.Avatar,
+            CreateAt = guild.CreateAt
+        };
+
+        return BerryOk(result);
     }
 }

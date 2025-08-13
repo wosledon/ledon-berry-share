@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Ledon.BerryShare.Shared.Base;
+using System.Text.Json.Serialization;
 
 namespace Ledon.BerryShare.Shared.Entities;
 
@@ -41,5 +42,6 @@ public class UserEntity : EntityBase
     // public virtual ICollection<GiftFlowEntity> GiftFlowTypes { get; set; } = new List<GiftFlowEntity>();
 
     public Guid? GiftFlowTypeId { get; set; }
+    [JsonIgnore]
     public virtual GiftFlowTypeEntity? GiftFlowType { get; set; }
 }

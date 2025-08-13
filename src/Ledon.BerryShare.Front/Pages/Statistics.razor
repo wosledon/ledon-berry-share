@@ -1,7 +1,7 @@
 @page "/statistics"
+@using Ledon.BerryShare.Shared
 @using Ledon.BerryShare.Shared.Results
 @using Ledon.BerryShare.Front.Services
-@using System.Text.Json
 @inject ApiService ApiService
 @inject GuildContextService GuildContext
 @inject IJSRuntime JSRuntime
@@ -36,7 +36,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">@GetPropertyValue(kpiData, "TotalOrders", "0")</h4>
+                            <h4 class="card-title">@(kpiData?.TotalOrders ?? 0)</h4>
                             <p class="card-text">流水单数</p>
                         </div>
                         <div class="align-self-center">
@@ -51,7 +51,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">¥@GetFormattedAmount(kpiData, "TotalAmount")</h4>
+                            <h4 class="card-title">¥@(kpiData?.TotalAmount.ToString("N2") ?? "0.00")</h4>
                             <p class="card-text">总流水金额</p>
                         </div>
                         <div class="align-self-center">
@@ -66,7 +66,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">@GetPropertyValue(kpiData, "ActiveUsers", "0")</h4>
+                            <h4 class="card-title">@(kpiData?.ActiveUsers ?? 0)</h4>
                             <p class="card-text">活跃用户数</p>
                         </div>
                         <div class="align-self-center">
@@ -81,7 +81,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="card-title">¥@GetFormattedAmount(kpiData, "TotalFinal")</h4>
+                            <h4 class="card-title">¥@(kpiData?.TotalFinal.ToString("N2") ?? "0.00")</h4>
                             <p class="card-text">总实得金额</p>
                         </div>
                         <div class="align-self-center">
@@ -178,12 +178,12 @@
     private DateTime? startDate = DateTime.Now.AddDays(-30);
     private DateTime? endDate = DateTime.Now;
 
-    private JsonElement? kpiData;
-    private List<JsonElement>? commissionData;
-    private List<JsonElement>? trendData;
-    private List<JsonElement>? userPerformanceData;
-    private List<JsonElement>? guildData;
-    private JsonElement? revenueData;
+    private KpiStatisticsResult? kpiData;
+    private List<CommissionDistributionResult>? commissionData;
+    private List<FlowTrendResult>? trendData;
+    private List<UserPerformanceResult>? userPerformanceData;
+    private List<GuildComparisonResult>? guildData;
+    private RevenueAnalysisResult? revenueData;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,102 +206,25 @@
             var guildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : (Guid?)null;
             var startParam = startDate?.ToString("yyyy-MM-dd");
             var endParam = endDate?.ToString("yyyy-MM-dd");
-
-            var queryParams = $"?{(guildId.HasValue ? $"guildId={guildId}&" : "")}" +
-                             $"{(!string.IsNullOrEmpty(startParam) ? $"startDate={startParam}&" : "")}" +
-                             $"{(!string.IsNullOrEmpty(endParam) ? $"endDate={endParam}" : "")}";
-
-            Console.WriteLine($"查询参数: {queryParams}");
-
-            // 加载KPI数据 - 简化版本
-            try 
-            {
-                var kpiUrl = $"api/v1/statistics/kpi{queryParams}";
-                Console.WriteLine($"请求KPI URL: {kpiUrl}");
-                var kpiResponse = await ApiService.GetAsync<object>(kpiUrl);
-                Console.WriteLine($"KPI响应: {JsonSerializer.Serialize(kpiResponse)}");
-                
-                if (kpiResponse != null)
-                {
-                    var jsonString = JsonSerializer.Serialize(kpiResponse);
-                    var jsonDoc = JsonDocument.Parse(jsonString);
-                    kpiData = jsonDoc.RootElement;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"KPI加载失败: {ex.Message}");
-            }
-
-            // 加载分成类型分布 - 简化版本
-            try
-            {
-                var commissionUrl = $"api/v1/statistics/commission-distribution{queryParams}";
-                Console.WriteLine($"请求分成类型 URL: {commissionUrl}");
-                var commissionResponse = await ApiService.GetAsync<object>(commissionUrl);
-                Console.WriteLine($"分成类型响应: {JsonSerializer.Serialize(commissionResponse)}");
-                
-                if (commissionResponse != null)
-                {
-                    var jsonString = JsonSerializer.Serialize(commissionResponse);
-                    var jsonDoc = JsonDocument.Parse(jsonString);
-                    if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
-                    {
-                        commissionData = dataElement.EnumerateArray().ToList();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"分成类型加载失败: {ex.Message}");
-            }
-
-            // 加载流水趋势
-            var trendResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/flow-trend{queryParams}&period=day");
-            if (trendResult != null)
-            {
-                var jsonString = JsonSerializer.Serialize(trendResult);
-                var jsonDoc = JsonDocument.Parse(jsonString);
-                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
-                {
-                    trendData = dataElement.EnumerateArray().ToList();
-                }
-            }
-
-            // 加载人员绩效
-            var userResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/user-performance{queryParams}&top=10");
-            if (userResult != null)
-            {
-                var jsonString = JsonSerializer.Serialize(userResult);
-                var jsonDoc = JsonDocument.Parse(jsonString);
-                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
-                {
-                    userPerformanceData = dataElement.EnumerateArray().ToList();
-                }
-            }
-
-            // 加载公会对比
-            var guildResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/guild-comparison{queryParams}");
-            if (guildResult != null)
-            {
-                var jsonString = JsonSerializer.Serialize(guildResult);
-                var jsonDoc = JsonDocument.Parse(jsonString);
-                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
-                {
-                    guildData = dataElement.EnumerateArray().ToList();
-                }
-            }
-
-            // 加载收支分析
-            var revenueResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/revenue-analysis{queryParams}");
-            if (revenueResult != null)
-            {
-                var jsonString = JsonSerializer.Serialize(revenueResult);
-                var jsonDoc = JsonDocument.Parse(jsonString);
-                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement))
-                    revenueData = dataElement;
-            }
-
+            var queryParams = $"?{(guildId.HasValue ? $"guildId={guildId}&" : "")}{(!string.IsNullOrEmpty(startParam) ? $"startDate={startParam}&" : "")}{(!string.IsNullOrEmpty(endParam) ? $"endDate={endParam}" : "")}";
+            // KPI
+            var kpiResult = await ApiService.GetAsync<BerryResult<KpiStatisticsResult>>($"api/v1/statistics/kpi{queryParams}");
+            kpiData = kpiResult?.Data;
+            // Commission
+            var commissionResult = await ApiService.GetAsync<BerryResult<List<CommissionDistributionResult>>>($"api/v1/statistics/commission-distribution{queryParams}");
+            commissionData = commissionResult?.Data;
+            // Trend
+            var trendResult = await ApiService.GetAsync<BerryResult<List<FlowTrendResult>>>($"api/v1/statistics/flow-trend{queryParams}&period=day");
+            trendData = trendResult?.Data;
+            // User Performance
+            var userResult = await ApiService.GetAsync<BerryResult<List<UserPerformanceResult>>>($"api/v1/statistics/user-performance{queryParams}&top=10");
+            userPerformanceData = userResult?.Data;
+            // Guild Comparison
+            var guildResult = await ApiService.GetAsync<BerryResult<List<GuildComparisonResult>>>($"api/v1/statistics/guild-comparison{queryParams}");
+            guildData = guildResult?.Data;
+            // Revenue Analysis
+            var revenueResult = await ApiService.GetAsync<BerryResult<RevenueAnalysisResult>>($"api/v1/statistics/revenue-analysis{queryParams}");
+            revenueData = revenueResult?.Data;
             StateHasChanged();
         }
         catch (Exception ex)
@@ -324,22 +247,18 @@
             {
                 await CreateTrendChart();
             }
-
             if (commissionData != null && commissionData.Any())
             {
                 await CreateCommissionChart();
             }
-
             if (userPerformanceData != null && userPerformanceData.Any())
             {
                 await CreateUserPerformanceChart();
             }
-
             if (revenueData != null)
             {
                 await CreateRevenueChart();
             }
-
             if (guildData != null && guildData.Count > 1)
             {
                 await CreateGuildChart();
@@ -356,10 +275,8 @@
         try
         {
             if (trendData == null) return;
-            
-            var labels = trendData.Select(d => GetJsonProperty(d, "Period", "")).ToArray();
-            var amounts = trendData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
-
+            var labels = trendData.Select(d => d.Period).ToArray();
+            var amounts = trendData.Select(d => d.TotalAmount).ToArray();
             await JSRuntime.InvokeVoidAsync("createTrendChart", "trendChart", labels, new object[]
             {
                 new { label = "流水金额", data = amounts }
@@ -376,10 +293,8 @@
         try
         {
             if (commissionData == null) return;
-            
-            var labels = commissionData.Select(d => GetJsonProperty(d, "CommissionTypeName", "")).ToArray();
-            var amounts = commissionData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
-
+            var labels = commissionData.Select(d => d.CommissionTypeName).ToArray();
+            var amounts = commissionData.Select(d => d.TotalAmount).ToArray();
             await JSRuntime.InvokeVoidAsync("createPieChart", "commissionChart", labels, amounts, "分成类型分布");
         }
         catch (Exception ex)
@@ -393,10 +308,8 @@
         try
         {
             if (userPerformanceData == null) return;
-            
-            var labels = userPerformanceData.Select(d => GetJsonProperty(d, "UserName", "")).ToArray();
-            var amounts = userPerformanceData.Select(d => GetJsonPropertyAsDecimal(d, "FinalAmount")).ToArray();
-
+            var labels = userPerformanceData.Select(d => d.UserName).ToArray();
+            var amounts = userPerformanceData.Select(d => d.FinalAmount).ToArray();
             await JSRuntime.InvokeVoidAsync("createBarChart", "userPerformanceChart", labels, new object[]
             {
                 new { label = "实得金额", data = amounts }
@@ -413,16 +326,14 @@
         try
         {
             if (revenueData == null) return;
-            
             var labels = new[] { "总金额", "分成金额", "税费金额", "实得金额" };
             var amounts = new[]
             {
-                GetJsonPropertyAsDecimal(revenueData.Value, "TotalAmount"),
-                GetJsonPropertyAsDecimal(revenueData.Value, "CommissionAmount"),
-                GetJsonPropertyAsDecimal(revenueData.Value, "TaxAmount"),
-                GetJsonPropertyAsDecimal(revenueData.Value, "FinalAmount")
+                revenueData.TotalAmount,
+                revenueData.CommissionAmount,
+                revenueData.TaxAmount,
+                revenueData.FinalAmount
             };
-
             await JSRuntime.InvokeVoidAsync("createDoughnutChart", "revenueChart", labels, amounts, "收支结构");
         }
         catch (Exception ex)
@@ -436,11 +347,9 @@
         try
         {
             if (guildData == null) return;
-            
-            var labels = guildData.Select(d => GetJsonProperty(d, "GuildName", "")).ToArray();
-            var amounts = guildData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
-            var orders = guildData.Select(d => GetJsonPropertyAsInt(d, "TotalOrders")).ToArray();
-
+            var labels = guildData.Select(d => d.GuildName).ToArray();
+            var amounts = guildData.Select(d => d.TotalAmount).ToArray();
+            var orders = guildData.Select(d => d.TotalOrders).ToArray();
             await JSRuntime.InvokeVoidAsync("createBarChart", "guildChart", labels, new object[]
             {
                 new { label = "总金额", data = amounts },
@@ -451,104 +360,5 @@
         {
             Console.WriteLine($"创建公会对比图失败: {ex.Message}");
         }
-    }
-
-    // 辅助方法
-    private string GetPropertyValue(JsonElement? element, string propertyName, string defaultValue = "")
-    {
-        if (element == null) return defaultValue;
-        
-        try
-        {
-            if (element.Value.TryGetProperty(propertyName, out var property))
-            {
-                return property.ToString();
-            }
-        }
-        catch
-        {
-            // 忽略错误
-        }
-        
-        return defaultValue;
-    }
-
-    private string GetFormattedAmount(JsonElement? element, string propertyName)
-    {
-        if (element == null) return "0.00";
-        
-        try
-        {
-            if (element.Value.TryGetProperty(propertyName, out var property))
-            {
-                if (property.TryGetDecimal(out var value))
-                {
-                    return value.ToString("N2");
-                }
-            }
-        }
-        catch
-        {
-            // 忽略错误
-        }
-        
-        return "0.00";
-    }
-
-    private string GetJsonProperty(JsonElement element, string propertyName, string defaultValue = "")
-    {
-        try
-        {
-            if (element.TryGetProperty(propertyName, out var property))
-            {
-                return property.ToString();
-            }
-        }
-        catch
-        {
-            // 忽略错误
-        }
-        
-        return defaultValue;
-    }
-
-    private decimal GetJsonPropertyAsDecimal(JsonElement element, string propertyName)
-    {
-        try
-        {
-            if (element.TryGetProperty(propertyName, out var property))
-            {
-                if (property.TryGetDecimal(out var value))
-                {
-                    return value;
-                }
-            }
-        }
-        catch
-        {
-            // 忽略错误
-        }
-        
-        return 0;
-    }
-
-    private int GetJsonPropertyAsInt(JsonElement element, string propertyName)
-    {
-        try
-        {
-            if (element.TryGetProperty(propertyName, out var property))
-            {
-                if (property.TryGetInt32(out var value))
-                {
-                    return value;
-                }
-            }
-        }
-        catch
-        {
-            // 忽略错误
-        }
-        
-        return 0;
     }
 }
