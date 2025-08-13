@@ -97,10 +97,16 @@ else
                                 <i class="bi bi-card-text me-2"></i>描述
                             </th>
                             <th class="border-0 fw-semibold">
+                                <i class="bi bi-building me-2"></i>所属公会
+                            </th>
+                            <th class="border-0 fw-semibold">
                                 <i class="bi bi-percent me-2"></i>分成比例
                             </th>
                             <th class="border-0 fw-semibold">
                                 <i class="bi bi-calculator me-2"></i>税率
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-check-circle me-2"></i>是否分成项
                             </th>
                             <th class="border-0 fw-semibold">
                                 <i class="bi bi-calendar me-2"></i>创建时间
@@ -124,6 +130,18 @@ else
                                     <span class="text-muted">@(!string.IsNullOrEmpty(c.Description) ? c.Description : "暂无描述")</span>
                                 </td>
                                 <td>
+                                    @if (!string.IsNullOrEmpty(c.GuildName))
+                                    {
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-building me-1"></i>@c.GuildName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
                                     <span class="badge bg-success text-white fs-6">
                                         <i class="bi bi-percent me-1"></i>@((c.CommissionRate * 100).ToString("0.##"))%
                                     </span>
@@ -132,6 +150,20 @@ else
                                     <span class="badge bg-danger text-white fs-6">
                                         <i class="bi bi-calculator me-1"></i>@((c.TaxRate * 100).ToString("0.##"))%
                                     </span>
+                                </td>
+                                <td>
+                                    @if (c.IncludeInTotal)
+                                    {
+                                        <span class="badge bg-primary text-white">
+                                            <i class="bi bi-check-circle me-1"></i>是
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary text-white">
+                                            <i class="bi bi-x-circle me-1"></i>否
+                                        </span>
+                                    }
                                 </td>
                                 <td>
                                     <small class="text-muted">@c.CreateAt.ToString("yyyy-MM-dd HH:mm")</small>
@@ -190,6 +222,10 @@ else
                 {
                     <div><strong>名称：</strong> @selectedComposition.Name</div>
                     <div><strong>描述：</strong> @selectedComposition.Description</div>
+                    <div><strong>所属公会：</strong> @selectedComposition.GuildName</div>
+                    <div><strong>分成比例：</strong> @((selectedComposition.CommissionRate * 100).ToString("0.##"))%</div>
+                    <div><strong>税率：</strong> @((selectedComposition.TaxRate * 100).ToString("0.##"))%</div>
+                    <div><strong>是否分成项：</strong> @(selectedComposition.IncludeInTotal ? "是" : "否")</div>
                     <div><strong>创建时间：</strong> @selectedComposition.CreateAt.ToString("yyyy-MM-dd HH:mm")</div>
                 }
             </div>
@@ -220,12 +256,30 @@ else
                         <input class="form-control" @bind="editComposition.Description" />
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">所属公会</label>
+                        <select class="form-select" @bind="editComposition.GuildId">
+                            <option value="">请选择公会</option>
+                            @foreach (var g in guilds)
+                            {
+                                <option value="@g.Id">@g.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">分成比例</label>
                         <input class="form-control" type="number" step="0.01" @bind="editComposition.CommissionRate" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">税率</label>
                         <input class="form-control" type="number" step="0.01" @bind="editComposition.TaxRate" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="editComposition.IncludeInTotal" id="editIncludeInTotal" />
+                            <label class="form-check-label" for="editIncludeInTotal">
+                                是否分成项
+                            </label>
+                        </div>
                     </div>
                 }
             </div>
@@ -257,12 +311,30 @@ else
                         <input class="form-control" @bind="addComposition.Description" />
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">所属公会</label>
+                        <select class="form-select" @bind="addComposition.GuildId">
+                            <option value="">请选择公会</option>
+                            @foreach (var g in guilds)
+                            {
+                                <option value="@g.Id">@g.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">分成比例</label>
                         <input class="form-control" type="number" step="0.01" @bind="addComposition.CommissionRate" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">税率</label>
                         <input class="form-control" type="number" step="0.01" @bind="addComposition.TaxRate" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="addComposition.IncludeInTotal" id="addIncludeInTotal" />
+                            <label class="form-check-label" for="addIncludeInTotal">
+                                是否分成项
+                            </label>
+                        </div>
                     </div>
                 }
             </div>
@@ -275,7 +347,7 @@ else
 </div>
 
 @code {
-    private List<CommissionTypeEntity>? compositions;
+    private List<CommissionTypeResult>? compositions;
     private int pageIndex = 1;
     private int pageSize = 10;
     private int totalPages = 1;
@@ -284,13 +356,13 @@ else
     private List<GuildResult> guilds = new();
     private Guid? selectedGuildId = null;
 
-    private CommissionTypeEntity? selectedComposition;
+    private CommissionTypeResult? selectedComposition;
     private bool showDetailModal = false;
 
-    private CommissionTypeEntity? editComposition;
+    private CommissionTypeResult? editComposition;
     private bool showEditModal = false;
 
-    private CommissionTypeEntity? addComposition;
+    private CommissionTypeResult? addComposition;
     private bool showAddModal = false;
 
     protected override async Task OnInitializedAsync()
@@ -309,8 +381,8 @@ else
     {
         var guildParam = selectedGuildId.HasValue ? $"&guildId={selectedGuildId}" : "";
         var query = $"api/v1/commissiontype/list?search={search}{guildParam}&pageIndex={pageIndex}&pageSize={pageSize}";
-        var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeEntity>>>(query);
-        compositions = result?.Data ?? new List<CommissionTypeEntity>();
+        var result = await ApiService.GetAsync<BerryResult<List<CommissionTypeResult>>>(query);
+        compositions = result?.Data ?? new List<CommissionTypeResult>();
         totalPages = (result?.TotalCount / pageSize) ?? 1;
     }
 
@@ -346,7 +418,7 @@ else
         }
     }
 
-    private void ShowDetail(CommissionTypeEntity composition)
+    private void ShowDetail(CommissionTypeResult composition)
     {
         selectedComposition = composition;
         showDetailModal = true;
@@ -358,14 +430,17 @@ else
         selectedComposition = null;
     }
 
-    private void ShowEdit(CommissionTypeEntity composition)
+    private void ShowEdit(CommissionTypeResult composition)
     {
-        editComposition = new CommissionTypeEntity
+        editComposition = new CommissionTypeResult
         {
             Id = composition.Id,
             Name = composition.Name,
             Description = composition.Description,
-            GuildId = composition.GuildId
+            GuildId = composition.GuildId,
+            CommissionRate = composition.CommissionRate,
+            TaxRate = composition.TaxRate,
+            IncludeInTotal = composition.IncludeInTotal
         };
         showEditModal = true;
     }
@@ -380,7 +455,17 @@ else
     {
         if (editComposition != null)
         {
-            var result = await ApiService.PutAsync<CommissionTypeEntity>("api/v1/commissiontype/update", editComposition);
+            var entity = new CommissionTypeEntity
+            {
+                Id = editComposition.Id,
+                Name = editComposition.Name,
+                Description = editComposition.Description,
+                GuildId = editComposition.GuildId,
+                CommissionRate = editComposition.CommissionRate,
+                TaxRate = editComposition.TaxRate,
+                IncludeInTotal = editComposition.IncludeInTotal
+            };
+            var result = await ApiService.PutAsync<CommissionTypeEntity>("api/v1/commissiontype/update", entity);
             await LoadData();
             CloseEditModal();
         }
@@ -388,7 +473,7 @@ else
 
     private void ShowAdd()
     {
-        addComposition = new CommissionTypeEntity();
+        addComposition = new CommissionTypeResult();
         addComposition.GuildId = selectedGuildId ?? Guid.Empty;
         showAddModal = true;
     }
@@ -403,7 +488,16 @@ else
     {
         if (addComposition != null)
         {
-            var result = await ApiService.PostAsync<CommissionTypeEntity>("api/v1/commissiontype/create", addComposition);
+            var entity = new CommissionTypeEntity
+            {
+                Name = addComposition.Name,
+                Description = addComposition.Description,
+                GuildId = addComposition.GuildId,
+                CommissionRate = addComposition.CommissionRate,
+                TaxRate = addComposition.TaxRate,
+                IncludeInTotal = addComposition.IncludeInTotal
+            };
+            var result = await ApiService.PostAsync<CommissionTypeResult>("api/v1/commissiontype/create", entity);
             await LoadData();
             CloseAddModal();
         }

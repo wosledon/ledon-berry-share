@@ -37,10 +37,16 @@ public class StatisticsController : ApiControllerBase
                 ActiveGuilds = g.Select(o => o.GuildId).Distinct().Count()
             })
             .FirstOrDefaultAsync();
-        var giftFlowStats = await _db.Q<GiftFlowEntity>()
+        var giftFlowQuery = _db.Q<GiftFlowEntity>()
             .Include(f => f.CommissionType)
-            .Where(f => !startDate.HasValue || f.FlowAt >= startDate.Value)
-            .Where(f => !endDate.HasValue || f.FlowAt < endDate.Value.AddDays(1))
+            .AsQueryable();
+        if (guildId.HasValue)
+            giftFlowQuery = giftFlowQuery.Where(f => f.GuildId == guildId.Value);
+        if (startDate.HasValue)
+            giftFlowQuery = giftFlowQuery.Where(f => f.FlowAt >= startDate.Value);
+        if (endDate.HasValue)
+            giftFlowQuery = giftFlowQuery.Where(f => f.FlowAt < endDate.Value.AddDays(1));
+        var giftFlowStats = await giftFlowQuery
             .GroupBy(f => 1)
             .Select(g => new {
                 // 只统计IncludeInTotal=true的Amount
@@ -56,7 +62,7 @@ public class StatisticsController : ApiControllerBase
         var giftFlowTotalAmount = giftFlowStats?.TotalAmount ?? 0;
         var totalCommission = giftFlowStats?.TotalCommission ?? 0;
         var totalTax = giftFlowStats?.TotalTax ?? 0;
-        var totalFinal = giftFlowTotalAmount - totalCommission - totalTax;
+        var totalFinal = totalCommission - totalTax;
         var activeUsers = giftFlowStats?.ActiveUsers ?? 0;
         var activeGuilds = orderStats?.ActiveGuilds ?? 0;
         var result = new KpiStatisticsResult
@@ -92,20 +98,16 @@ public class StatisticsController : ApiControllerBase
         if (endDate.HasValue)
             query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
         var commissionData = await query
-            .Join(_db.Q<CommissionTypeEntity>(),
-                f => f.CommissionTypeId,
-                c => c.Id,
-                (f, c) => new { f.CommissionTypeId, CommissionTypeName = c.Name, f.Amount, c.IncludeInTotal })
-            .GroupBy(x => new { x.CommissionTypeId, x.CommissionTypeName })
+            .Include(f => f.CommissionType)
+            .GroupBy(f => new { f.CommissionTypeId, CommissionTypeName = f.CommissionType!.Name })
             .Select(g => new CommissionDistributionResult
             {
                 CommissionTypeId = g.Key.CommissionTypeId,
                 CommissionTypeName = g.Key.CommissionTypeName,
-                TotalAmount = g.Where(x => x.IncludeInTotal).Sum(x => x.Amount),
+                TotalAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Sum(f => f.Amount),
                 Count = g.Count(),
-                AvgAmount = g.Where(x => x.IncludeInTotal).Average(x => x.Amount)
+                AvgAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Any() ? g.Where(f => f.CommissionType!.IncludeInTotal).Average(f => f.Amount) : 0
             })
-            //.OrderByDescending(x => x.TotalAmount)
             .ToListAsync();
         return Ok(new BerryResult<List<CommissionDistributionResult>>
         {
@@ -183,23 +185,21 @@ public class StatisticsController : ApiControllerBase
             query = query.Where(f => f.FlowAt >= startDate.Value);
         if (endDate.HasValue)
             query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
-        var userPerformance = await (
-            from f in query
-            join u in _db.Q<UserEntity>() on f.UserId equals u.Id
-            join c in _db.Q<CommissionTypeEntity>() on f.CommissionTypeId equals c.Id
-            group new { f, u, c } by new { f.UserId, u.Name } into g
-            select new UserPerformanceResult
+        var userPerformance = await query
+            .Include(f => f.User)
+            .Include(f => f.CommissionType)
+            .GroupBy(f => new { f.UserId, UserName = f.User!.Name })
+            .Select(g => new UserPerformanceResult
             {
                 UserId = g.Key.UserId,
-                UserName = g.Key.Name,
-                TotalAmount = g.Where(x=>x.c.IncludeInTotal).Sum(x => x.f.Amount),
-                TotalCommission = g.Sum(x => x.f.Amount * x.c.CommissionRate),
-                TotalTax = g.Sum(x => x.f.Amount * x.c.TaxRate),
-                FinalAmount = g.Sum(x => x.f.Amount * x.c.CommissionRate - x.f.Amount * x.c.TaxRate),
+                UserName = g.Key.UserName,
+                TotalAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Sum(f => f.Amount),
+                TotalCommission = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate),
+                TotalTax = g.Sum(f => f.Amount * f.CommissionType!.TaxRate),
+                FinalAmount = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate - f.Amount * f.CommissionType!.TaxRate),
                 OrderCount = g.Count(),
-                AvgOrderAmount = g.Where(x=>x.c.IncludeInTotal).Average(x => x.f.Amount)
+                AvgOrderAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Any() ? g.Where(f => f.CommissionType!.IncludeInTotal).Average(f => f.Amount) : 0
             })
-            //.OrderByDescending(x => x.FinalAmount)
             .Take(top)
             .ToListAsync();
         return Ok(new BerryResult<List<UserPerformanceResult>>
@@ -220,14 +220,13 @@ public class StatisticsController : ApiControllerBase
             query = query.Where(o => o.OrderAt >= startDate.Value);
         if (endDate.HasValue)
             query = query.Where(o => o.OrderAt < endDate.Value.AddDays(1));
-        var guildData = await (
-            from o in query
-            join g in _db.Q<GuildEntity>() on o.GuildId equals g.Id
-            group o by new { o.GuildId, g.Name } into grp
-            select new GuildComparisonResult
+        var guildData = await query
+            .Include(o => o.Guild)
+            .GroupBy(o => new { o.GuildId, GuildName = o.Guild!.Name })
+            .Select(grp => new GuildComparisonResult
             {
                 GuildId = grp.Key.GuildId,
-                GuildName = grp.Key.Name,
+                GuildName = grp.Key.GuildName,
                 TotalOrders = grp.Count(),
                 TotalAmount = grp.Sum(o => o.Amount),
                 AvgOrderAmount = grp.Average(o => o.Amount),
@@ -239,7 +238,6 @@ public class StatisticsController : ApiControllerBase
                     .Distinct()
                     .Count()
             })
-            //.OrderByDescending(x => x.TotalAmount)
             .ToListAsync();
         return Ok(new BerryResult<List<GuildComparisonResult>>
         {
@@ -261,11 +259,10 @@ public class StatisticsController : ApiControllerBase
             query = query.Where(f => f.FlowAt >= startDate.Value);
         if (endDate.HasValue)
             query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
-        var revenueData = await (
-            from f in query
-            join c in _db.Q<CommissionTypeEntity>() on f.CommissionTypeId equals c.Id
-            select new { f.Amount, c.CommissionRate, c.TaxRate, c.IncludeInTotal }
-        ).ToListAsync();
+        var revenueData = await query
+            .Include(f => f.CommissionType)
+            .Select(f => new { f.Amount, f.CommissionType!.CommissionRate, f.CommissionType.TaxRate, f.CommissionType.IncludeInTotal })
+            .ToListAsync();
         var totalAmount = revenueData.Where(x=>x.IncludeInTotal).Sum(x => x.Amount);
         var totalCommission = revenueData.Sum(x => x.Amount * x.CommissionRate);
         var totalTax = revenueData.Sum(x => x.Amount * x.TaxRate);

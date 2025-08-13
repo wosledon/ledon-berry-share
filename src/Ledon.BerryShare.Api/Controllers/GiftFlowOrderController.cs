@@ -203,14 +203,19 @@ public class GiftFlowOrderController : ApiControllerBase
 
         // 更新基本信息
         order.Description = request.Description ?? order.Description;
+        order.Amount = request.TotalAmount;
         
-        order.OrderAt = DateTime.Now; // 更新为当前时间
+        order.OrderAt = request.OrderDate ?? DateTime.Now; // 更新为当前时间
 
         // 如果提供了新的流水记录，先删除旧的再添加新的
         if (request.GiftFlows != null)
         {
             // 删除现有流水记录
             _db.RemoveRange(order.GiftFlows);
+
+            var commissions = await _db.Q<CommissionTypeEntity>()
+                .Where(c => request.GiftFlows.Select(f => f.CommissionTypeId).Contains(c.Id))
+                .ToListAsync();
 
             // 添加新的流水记录
             var newGiftFlows = request.GiftFlows.Select(f => new GiftFlowEntity
@@ -222,13 +227,14 @@ public class GiftFlowOrderController : ApiControllerBase
                 GiftFlowTypeId = f.GiftFlowTypeId,
                 Amount = f.Amount,
                 FlowAt = DateTime.Now,
-                Remark = f.Remark
+                Remark = f.Remark,
+                CommissionType = commissions.FirstOrDefault(c => c.Id == f.CommissionTypeId)
             }).ToList();
 
             _db.AddRange(newGiftFlows);
 
             // 重新计算总金额
-            order.Amount = newGiftFlows.Sum(f => f.Amount);
+            order.Amount = newGiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount);
         }
 
         await _db.SaveChangesAsync();

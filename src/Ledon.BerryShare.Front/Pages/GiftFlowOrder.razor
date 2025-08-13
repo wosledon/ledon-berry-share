@@ -4,6 +4,7 @@
 @using Ledon.BerryShare.Shared.Results
 @using Ledon.BerryShare.Shared.Querys
 @using Ledon.BerryShare.Front.Services
+@using System.Text.Json
 @inject Services.ApiService ApiService
 @inject Services.GuildContextService GuildContext
 @inject Services.ToastService ToastService
@@ -69,7 +70,7 @@ else
                             <th>公会</th>
                             <th>总金额</th>
                             <th>流水条数</th>
-                            <th>创建时间</th>
+                            <th>订单时间</th>
                             <th width="200">操作</th>
                         </tr>
                     </thead>
@@ -88,7 +89,7 @@ else
                                 <td>
                                     <span class="badge bg-info">@order.GiftFlows.GroupBy(x=>x.UserId).Select(x=>x.Key).Count() 条</span>
                                 </td>
-                                <td>@order.CreateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@((order.OrderDate ?? order.CreateTime).ToString("yyyy-MM-dd"))</td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <button class="btn btn-outline-info" @onclick="() => ShowDetailModal(order)" title="查看详情">
@@ -150,7 +151,7 @@ else
                             <strong>总金额：</strong> <span class="text-success fw-bold">¥@selectedOrder.TotalAmount.ToString("F2")</span>
                         </div>
                         <div class="col-md-6">
-                            <strong>创建时间：</strong> @selectedOrder.CreateTime.ToString("yyyy-MM-dd HH:mm")
+                            <strong>订单时间：</strong> @((selectedOrder.OrderDate ?? selectedOrder.CreateTime).ToString("yyyy-MM-dd"))
                         </div>
                     </div>
                     <div class="mb-3">
@@ -274,7 +275,7 @@ else
                                     <strong>总金额：</strong> ¥@selectedOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>总分成金额：</strong> ¥@selectedOrder.GiftFlows.Sum(f => f.CommissionAmount).ToString("F2")
+                                    <strong>总分成金额：</strong> ¥@selectedOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.CommissionAmount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
                                     <strong>总税收金额：</strong> ¥@selectedOrder.GiftFlows.Sum(f => f.TaxRateAmount).ToString("F2")
@@ -358,6 +359,13 @@ else
                             </select>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label">订单时间 <span class="text-danger">*</span></label>
+                            <input class="form-control" type="date" value="@orderDateString" @onchange="OnOrderDateChanged" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
                             <label class="form-label">描述</label>
                             <input class="form-control" @bind="editOrder.Description" placeholder="流水单描述" />
                         </div>
@@ -431,7 +439,7 @@ else
                                                                    type="number" 
                                                                    step="0.01" 
                                                                    @bind="flow.Amount"
-                                                                   @bind:after="StateHasChanged"
+                                                                   @bind:after="OnAmountChanged"
                                                                    placeholder="0.00" />
                                                         </div>
                                                         <div class="small text-muted">
@@ -485,7 +493,7 @@ else
                                     <strong>总金额：</strong> ¥@editOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
-                                    <strong>总分成金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.CommissionAmount).ToString("F2")
+                                    <strong>总分成金额：</strong> ¥@editOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.CommissionAmount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
                                     <strong>总税收金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.TaxRateAmount).ToString("F2")
@@ -550,6 +558,9 @@ else
 
     // 用户备注字典
     private Dictionary<Guid, string> userRemarks = new();
+
+    // 订单日期字符串（用于与HTML日期控件绑定）
+    private string orderDateString = DateTime.Today.ToString("yyyy-MM-dd");
 
     // 详情模态框专用变量
     private List<UserResult>? detailGuildUsers;
@@ -666,6 +677,17 @@ else
             var flowTypesResult = await ApiService.GetAsync<BerryResult<PagedList<GiftFlowTypeResult>>>("api/v1/giftflowtype/list?pageSize=100");
             detailGiftFlowTypes = flowTypesResult?.Data ?? new List<GiftFlowTypeResult>();
 
+            // 重新关联流水记录中的CommissionType对象以确保计算属性正常工作
+            if (selectedOrder?.GiftFlows != null && detailCommissionTypes != null)
+            {
+                foreach (var flow in selectedOrder.GiftFlows)
+                {
+                    flow.CommissionType = detailCommissionTypes.FirstOrDefault(ct => ct.Id == flow.CommissionTypeId);
+                    flow.User = detailGuildUsers?.FirstOrDefault(u => u.Id == flow.UserId);
+                    flow.GiftFlowType = detailGiftFlowTypes?.FirstOrDefault(gt => gt.Id == flow.GiftFlowTypeId);
+                }
+            }
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -689,8 +711,12 @@ else
         {
             Id = Guid.Empty,
             GiftFlows = new List<GiftFlowResult>(),
-            GuildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : Guid.Empty
+            GuildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : Guid.Empty,
+            OrderDate = DateTime.Today // 默认为今天
         };
+
+        // 设置订单日期字符串为今天
+        orderDateString = DateTime.Today.ToString("yyyy-MM-dd");
 
         userRemarks.Clear();
 
@@ -710,6 +736,7 @@ else
             Id = order.Id,
             Description = order.Description,
             GuildId = order.GuildId,
+            OrderDate = order.OrderDate ?? DateTime.Today, // 如果为空则默认今天
             GiftFlows = order.GiftFlows.Select(f => new GiftFlowResult
             {
                 Id = f.Id,
@@ -724,8 +751,22 @@ else
             }).ToList()
         };
 
+        // 设置订单日期字符串
+        orderDateString = editOrder.OrderDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
+
         // 先加载公会数据
         await LoadGuildData(editOrder.GuildId);
+
+        // 重新关联CommissionType对象以确保计算属性正常工作
+        if (editOrder.GiftFlows != null && commissionTypes != null)
+        {
+            foreach (var flow in editOrder.GiftFlows)
+            {
+                flow.CommissionType = commissionTypes.FirstOrDefault(ct => ct.Id == flow.CommissionTypeId);
+                flow.User = guildUsers?.FirstOrDefault(u => u.Id == flow.UserId);
+                flow.GiftFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == flow.GiftFlowTypeId);
+            }
+        }
 
         // 初始化用户备注字典
         userRemarks.Clear();
@@ -757,6 +798,20 @@ else
         commissionTypes = null;
         giftFlowTypes = null;
         userRemarks.Clear();
+        orderDateString = DateTime.Today.ToString("yyyy-MM-dd"); // 重置为默认值
+    }
+
+    private void OnOrderDateChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && DateTime.TryParse(e.Value.ToString(), out var selectedDate))
+        {
+            orderDateString = selectedDate.ToString("yyyy-MM-dd");
+            if (editOrder != null)
+            {
+                editOrder.OrderDate = selectedDate;
+            }
+        }
+        StateHasChanged();
     }
 
     private async Task OnGuildChangedAsync()
@@ -952,8 +1007,30 @@ else
             
             editOrder.GiftFlows.Add(flow);
         }
+        else
+        {
+            // 确保现有流水记录的关联对象是最新的
+            if (flow.CommissionType == null)
+            {
+                flow.CommissionType = commissionTypes?.FirstOrDefault(ct => ct.Id == flow.CommissionTypeId);
+            }
+            if (flow.User == null)
+            {
+                flow.User = guildUsers?.FirstOrDefault(u => u.Id == flow.UserId);
+            }
+            if (flow.GiftFlowType == null)
+            {
+                flow.GiftFlowType = giftFlowTypes?.FirstOrDefault(gt => gt.Id == flow.GiftFlowTypeId);
+            }
+        }
         
         return flow;
+    }
+
+    private void OnAmountChanged()
+    {
+        // 强制刷新UI以确保计算属性重新计算
+        StateHasChanged();
     }
 
     private decimal GetUserTotalAmount(Guid userId)
@@ -1007,11 +1084,15 @@ else
                 
                 // 生成标题（如果没有描述，使用默认标题）
                 editOrder.Title = string.IsNullOrEmpty(editOrder.Description) 
-                    ? $"流水单-{DateTime.Now:yyyy-MM-dd HH:mm}" 
+                    ? $"流水单-{(editOrder.OrderDate ?? DateTime.Today):yyyy-MM-dd}" 
                     : editOrder.Description;
                 
-                // 设置日期
-                editOrder.OrderDate = DateTime.Now;
+                // 确保订单日期有值，如果没有则设置为今天
+                if (!editOrder.OrderDate.HasValue)
+                {
+                    editOrder.OrderDate = DateTime.Today;
+                }
+                
                 editOrder.CreateTime = DateTime.Now;
                 editOrder.UpdateTime = DateTime.Now;
 

@@ -8,7 +8,7 @@ public class GiftFlowOrderResult
     public string OrderNumber { get; set; } = default!;
     public string Title { get; set; } = default!;
     public string? Description { get; set; }
-    public DateTime OrderDate { get; set; }
+    public DateTime? OrderDate { get; set; }
     public decimal TotalAmount { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }

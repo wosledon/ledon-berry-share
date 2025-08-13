@@ -68,8 +68,24 @@ public class CommissionTypeController : ApiControllerBase
         {
             return BerryError("分成类型不存在");
         }
+
+        // 验证 Guild 是否存在（如果要更改 GuildId）
+        if (composition.GuildId != Guid.Empty && composition.GuildId != existingComposition.GuildId)
+        {
+            var guildExists = await _db.Q<GuildEntity>().AnyAsync(g => g.Id == composition.GuildId);
+            if (!guildExists)
+            {
+                return BerryError("指定的公会不存在");
+            }
+        }
+
         existingComposition.Name = composition.Name;
         existingComposition.Description = composition.Description;
+        existingComposition.GuildId = composition.GuildId;
+        existingComposition.CommissionRate = composition.CommissionRate;
+        existingComposition.TaxRate = composition.TaxRate;
+        existingComposition.IncludeInTotal = composition.IncludeInTotal;
+        existingComposition.ModifyAt = DateTime.Now;
         await _db.SaveChangesAsync();
         return BerryOk();
     }
@@ -98,23 +114,39 @@ public class CommissionTypeController : ApiControllerBase
         {
             return BerryError("无效的分成类型信息");
         }
+
+        // 验证 Guild 是否存在
+        if (composition.GuildId != Guid.Empty)
+        {
+            var guildExists = await _db.Q<GuildEntity>().AnyAsync(g => g.Id == composition.GuildId);
+            if (!guildExists)
+            {
+                return BerryError("指定的公会不存在");
+            }
+        }
+
         _db.Add(composition);
         await _db.SaveChangesAsync();
 
+        // 重新查询以获取关联的Guild信息
+        var createdComposition = await _db.Q<CommissionTypeEntity>()
+            .Include(c => c.Guild)
+            .FirstOrDefaultAsync(c => c.Id == composition.Id);
+
         var result = new CommissionTypeResult
         {
-            Id = composition.Id,
-            Name = composition.Name,
-            Description = composition.Description,
-            GuildId = composition.GuildId,
-            GuildName = composition.Guild != null ? composition.Guild.Name : string.Empty,
-            CommissionRate = composition.CommissionRate,
-            TaxRate = composition.TaxRate,
-            IsActive = composition.IsActive,
-            IsDeleted = composition.IsDeleted,
-            CreateAt = composition.CreateAt,
-            ModifyAt = composition.ModifyAt,
-            IncludeInTotal = composition.IncludeInTotal
+            Id = createdComposition!.Id,
+            Name = createdComposition.Name,
+            Description = createdComposition.Description,
+            GuildId = createdComposition.GuildId,
+            GuildName = createdComposition.Guild?.Name ?? string.Empty,
+            CommissionRate = createdComposition.CommissionRate,
+            TaxRate = createdComposition.TaxRate,
+            IsActive = createdComposition.IsActive,
+            IsDeleted = createdComposition.IsDeleted,
+            CreateAt = createdComposition.CreateAt,
+            ModifyAt = createdComposition.ModifyAt,
+            IncludeInTotal = createdComposition.IncludeInTotal
         };
 
         return BerryOk(result);
