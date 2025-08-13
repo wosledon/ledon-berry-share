@@ -258,7 +258,7 @@ else
                                             </td>
                                         }
                                         <td class="text-center">
-                                            <strong class="text-primary">¥@selectedOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")</strong>
+                                            <strong class="text-primary">¥@selectedOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")</strong>
                                             <br/>
                                             <small class="text-success">实得: ¥@selectedOrder.GiftFlows.Sum(f => f.FinalAmount).ToString("F2")</small>
                                         </td>
@@ -271,7 +271,7 @@ else
                         <div class="alert alert-info">
                             <div class="row">
                                 <div class="col-md-3">
-                                    <strong>总金额：</strong> ¥@selectedOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")
+                                    <strong>总金额：</strong> ¥@selectedOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
                                     <strong>总分成金额：</strong> ¥@selectedOrder.GiftFlows.Sum(f => f.CommissionAmount).ToString("F2")
@@ -385,7 +385,8 @@ else
                                                 @commissionType.Name
                                                 <br/>
                                                 <small class="text-muted">
-                                                    分成@((commissionType.CommissionRate * 100).ToString("F1"))% 
+                                                    @($"{(commissionType.IncludeInTotal ? "分成":"占比")}")@((commissionType.CommissionRate * 100).ToString("F1"))% 
+                                                    <br />
                                                     税@((commissionType.TaxRate * 100).ToString("F1"))%
                                                 </small>
                                             </th>
@@ -434,7 +435,7 @@ else
                                                                    placeholder="0.00" />
                                                         </div>
                                                         <div class="small text-muted">
-                                                            <div>分成: ¥@flow.CommissionAmount.ToString("F2")</div>
+                                                            <div>@($"{(commissionType.IncludeInTotal ? "分成":"占比")}"): ¥@flow.CommissionAmount.ToString("F2")</div>
                                                             <div>税收: ¥@flow.TaxRateAmount.ToString("F2")</div>
                                                             <div class="text-success fw-bold">实得: ¥@flow.FinalAmount.ToString("F2")</div>
                                                         </div>
@@ -468,7 +469,7 @@ else
                                             </td>
                                         }
                                         <td class="text-center">
-                                            <strong class="text-primary">¥@editOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")</strong>
+                                            <strong class="text-primary">¥@editOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")</strong>
                                             <br/>
                                             <small class="text-success">实得: ¥@editOrder.GiftFlows.Sum(f => f.FinalAmount).ToString("F2")</small>
                                         </td>
@@ -481,7 +482,7 @@ else
                         <div class="alert alert-info">
                             <div class="row">
                                 <div class="col-md-3">
-                                    <strong>总金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.Amount).ToString("F2")
+                                    <strong>总金额：</strong> ¥@editOrder.GiftFlows.Where(f => f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount).ToString("F2")
                                 </div>
                                 <div class="col-md-3">
                                     <strong>总分成金额：</strong> ¥@editOrder.GiftFlows.Sum(f => f.CommissionAmount).ToString("F2")
@@ -957,7 +958,7 @@ else
 
     private decimal GetUserTotalAmount(Guid userId)
     {
-        return editOrder?.GiftFlows?.Where(f => f.UserId == userId).Sum(f => f.Amount) ?? 0;
+        return editOrder?.GiftFlows?.Where(f => f.UserId == userId && (f.CommissionType?.IncludeInTotal ?? false)).Sum(f => f.Amount) ?? 0;
     }
 
     private decimal GetUserFinalAmount(Guid userId)
@@ -967,7 +968,7 @@ else
 
     private decimal GetCommissionTypeTotal(Guid commissionTypeId)
     {
-        return editOrder?.GiftFlows?.Where(f => f.CommissionTypeId == commissionTypeId).Sum(f => f.Amount) ?? 0;
+        return editOrder?.GiftFlows?.Where(f => f.CommissionTypeId == commissionTypeId && (f.CommissionType?.IncludeInTotal ?? false)).Sum(f => f.Amount) ?? 0;
     }
 
     private bool CanSave()
@@ -996,7 +997,7 @@ else
 
             // 只保留有金额的流水记录
             editOrder.GiftFlows = editOrder.GiftFlows.Where(f => f.Amount > 0).ToList();
-            editOrder.TotalAmount = editOrder.GiftFlows.Sum(f => f.Amount);
+            editOrder.TotalAmount = editOrder.GiftFlows.Where(f=>f.CommissionType?.IncludeInTotal ?? false).Sum(f => f.Amount);
 
             // 为新创建的流水单生成必填字段
             if (editOrder.Id == Guid.Empty)

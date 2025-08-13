@@ -15,4 +15,7 @@ public class CommissionTypeEntity : EntityBase
     public decimal CommissionRate { get; set; } = 0.0m;
 
     public decimal TaxRate { get; set; } = 0.0m;
+
+    // 是否计入总流水
+    public bool IncludeInTotal { get; set; } = false;
 }

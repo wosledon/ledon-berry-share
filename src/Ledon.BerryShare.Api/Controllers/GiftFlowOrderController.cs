@@ -56,35 +56,43 @@ public class GiftFlowOrderController : ApiControllerBase
             orders = orders.Where(o => o.OrderAt <= query.EndDate.Value.Date.AddDays(1).AddTicks(-1));
         }
 
-        var pagedResult = await orders
+        var pagedOrders = await orders
             .OrderByDescending(o => o.OrderAt)
-            .Select(o => new GiftFlowOrderResult
-            {
-                Id = o.Id,
-                OrderNumber = $"FS{o.OrderAt:yyyyMMddHHmmss}",
-                Title = string.IsNullOrEmpty(o.Description) ? $"流水单-{o.OrderAt:yyyy-MM-dd HH:mm}" : o.Description,
-                Description = o.Description,
-                OrderDate = o.OrderAt,
-                TotalAmount = o.Amount,
-                CreateTime = o.CreateAt,
-                UpdateTime = o.ModifyAt ?? o.CreateAt,
-                GuildId = o.GuildId,
-                GuildName = o.Guild != null ? o.Guild.Name : string.Empty,
-                GiftFlows = o.GiftFlows.Select(f => new GiftFlowResult
-                {
-                    Id = f.Id,
-                    FlowNumber = $"FS{o.OrderAt:yyyyMMddHHmmss}-{f.Id.ToString().Substring(0, 3)}",
-                    Amount = f.Amount,
-                    FlowDate = f.FlowAt,
-                    Remark = f.Remark ?? string.Empty,
-                    CreateTime = f.CreateAt,
-                    // UpdateTime = f.UpdateAt,
-                    UserId = f.UserId,
-                    CommissionTypeId = f.CommissionTypeId,
-                    GiftFlowTypeId = f.GiftFlowTypeId,
-                }).ToList()
-            })
             .ToPagedListAsync(query.PageIndex, query.PageSize);
+
+        // 内存中投影
+        var pagedResult = new PagedList<GiftFlowOrderResult>
+        {
+            PageIndex = pagedOrders.PageIndex,
+            PageSize = pagedOrders.PageSize,
+            TotalCount = pagedOrders.TotalCount
+        };
+        pagedResult.AddRange(pagedOrders.Select(o => new GiftFlowOrderResult
+        {
+            Id = o.Id,
+            OrderNumber = $"FS{o.OrderAt:yyyyMMddHHmmss}",
+            Title = string.IsNullOrEmpty(o.Description) ? $"流水单-{o.OrderAt:yyyy-MM-dd HH:mm}" : o.Description,
+            Description = o.Description,
+            OrderDate = o.OrderAt,
+            TotalAmount = o.Amount,
+            CreateTime = o.CreateAt,
+            UpdateTime = o.ModifyAt ?? o.CreateAt,
+            GuildId = o.GuildId,
+            GuildName = o.Guild?.Name ?? string.Empty,
+            GiftFlows = o.GiftFlows.Select(f => new GiftFlowResult
+            {
+                Id = f.Id,
+                FlowNumber = $"FS{o.OrderAt:yyyyMMddHHmmss}-{f.Id.ToString().Substring(0, 3)}",
+                Amount = f.Amount,
+                FlowDate = f.FlowAt,
+                Remark = f.Remark ?? string.Empty,
+                CreateTime = f.CreateAt,
+                UserId = f.UserId,
+                CommissionTypeId = f.CommissionTypeId,
+                GiftFlowTypeId = f.GiftFlowTypeId,
+            }).ToList()
+        }));
+
 
         return BerryOk(pagedResult);
     }
@@ -359,7 +367,8 @@ public class GiftFlowOrderController : ApiControllerBase
                 Description = entity.CommissionType.Description,
                 GuildId = entity.CommissionType.GuildId,
                 CreateAt = entity.CommissionType.CreateAt,
-                ModifyAt = entity.CommissionType.ModifyAt
+                ModifyAt = entity.CommissionType.ModifyAt,
+                IncludeInTotal = entity.CommissionType.IncludeInTotal
             },
             GiftFlowType = entity.GiftFlowType == null ? null : new GiftFlowTypeResult
             {

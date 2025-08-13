@@ -15,5 +15,7 @@ namespace Ledon.BerryShare.Shared.Results
         public bool IsDeleted { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime? ModifyAt { get; set; }
+
+        public bool IncludeInTotal { get; set; }
     }
 }

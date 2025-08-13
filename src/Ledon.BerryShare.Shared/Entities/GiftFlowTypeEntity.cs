@@ -14,9 +14,9 @@ public class GiftFlowTypeEntity : EntityBase
     [JsonIgnore]
     public virtual GuildEntity? Guild { get; set; }
 
-    [JsonIgnore]
+    // [JsonIgnore]
     public virtual ICollection<CommissionTypeEntity> Compositions { get; set; } = new List<CommissionTypeEntity>();
 
-    [JsonIgnore]
+    // [JsonIgnore]
     public virtual ICollection<GiftFlowEntity> GiftFlows { get; set; } = new List<GiftFlowEntity>();
 }

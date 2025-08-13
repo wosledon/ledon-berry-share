@@ -63,7 +63,8 @@ public class GiftFlowTypeController : ApiControllerBase
                 CommissionRate = c.CommissionRate,
                 TaxRate = c.TaxRate,
                 Description = c.Description,
-                CreateAt = c.CreateAt
+                CreateAt = c.CreateAt,
+                IncludeInTotal = c.IncludeInTotal
             }).ToList()
         };
         return BerryOk(dto);

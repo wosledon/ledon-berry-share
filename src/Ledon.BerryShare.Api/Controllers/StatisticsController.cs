@@ -38,10 +38,14 @@ public class StatisticsController : ApiControllerBase
             })
             .FirstOrDefaultAsync();
         var giftFlowStats = await _db.Q<GiftFlowEntity>()
+            .Include(f => f.CommissionType)
             .Where(f => !startDate.HasValue || f.FlowAt >= startDate.Value)
             .Where(f => !endDate.HasValue || f.FlowAt < endDate.Value.AddDays(1))
             .GroupBy(f => 1)
             .Select(g => new {
+                // 只统计IncludeInTotal=true的Amount
+                TotalAmount = g.Where(f => f.CommissionType != null && f.CommissionType.IncludeInTotal).Sum(f => f.Amount),
+                // 抽成和税都统计所有Amount
                 TotalCommission = g.Sum(f => f.Amount * (f.CommissionType != null ? f.CommissionType.CommissionRate : 0)),
                 TotalTax = g.Sum(f => f.Amount * (f.CommissionType != null ? f.CommissionType.TaxRate : 0)),
                 ActiveUsers = g.Select(f => f.UserId).Distinct().Count()
@@ -49,15 +53,16 @@ public class StatisticsController : ApiControllerBase
             .FirstOrDefaultAsync();
         var totalOrders = orderStats?.TotalOrders ?? 0;
         var totalAmount = orderStats?.TotalAmount ?? 0;
+        var giftFlowTotalAmount = giftFlowStats?.TotalAmount ?? 0;
         var totalCommission = giftFlowStats?.TotalCommission ?? 0;
         var totalTax = giftFlowStats?.TotalTax ?? 0;
-        var totalFinal = totalAmount - totalCommission - totalTax;
+        var totalFinal = giftFlowTotalAmount - totalCommission - totalTax;
         var activeUsers = giftFlowStats?.ActiveUsers ?? 0;
         var activeGuilds = orderStats?.ActiveGuilds ?? 0;
         var result = new KpiStatisticsResult
         {
             TotalOrders = totalOrders,
-            TotalAmount = totalAmount,
+            TotalAmount = giftFlowTotalAmount, // KPI总金额用GiftFlowEntity的统计
             TotalCommission = totalCommission,
             TotalTax = totalTax,
             TotalFinal = totalFinal,
@@ -65,7 +70,7 @@ public class StatisticsController : ApiControllerBase
             ActiveGuilds = activeGuilds,
             AvgOrderAmount = totalOrders > 0 ? totalAmount / totalOrders : 0
         };
-        Console.WriteLine($"KPI Data: TotalOrders={totalOrders}, TotalAmount={totalAmount}, TotalCommission={totalCommission}, TotalTax={totalTax}, TotalFinal={totalFinal}, ActiveUsers={activeUsers}, ActiveGuilds={activeGuilds}");
+        Console.WriteLine($"KPI Data: TotalOrders={totalOrders}, TotalAmount={giftFlowTotalAmount}, TotalCommission={totalCommission}, TotalTax={totalTax}, TotalFinal={totalFinal}, ActiveUsers={activeUsers}, ActiveGuilds={activeGuilds}");
         return Ok(new BerryResult<KpiStatisticsResult>
         {
             Code = BerryResult.StatusCodeEnum.Success,
@@ -90,15 +95,15 @@ public class StatisticsController : ApiControllerBase
             .Join(_db.Q<CommissionTypeEntity>(),
                 f => f.CommissionTypeId,
                 c => c.Id,
-                (f, c) => new { f.CommissionTypeId, CommissionTypeName = c.Name, f.Amount })
+                (f, c) => new { f.CommissionTypeId, CommissionTypeName = c.Name, f.Amount, c.IncludeInTotal })
             .GroupBy(x => new { x.CommissionTypeId, x.CommissionTypeName })
             .Select(g => new CommissionDistributionResult
             {
                 CommissionTypeId = g.Key.CommissionTypeId,
                 CommissionTypeName = g.Key.CommissionTypeName,
-                TotalAmount = g.Sum(x => x.Amount),
+                TotalAmount = g.Where(x => x.IncludeInTotal).Sum(x => x.Amount),
                 Count = g.Count(),
-                AvgAmount = g.Average(x => x.Amount)
+                AvgAmount = g.Where(x => x.IncludeInTotal).Average(x => x.Amount)
             })
             //.OrderByDescending(x => x.TotalAmount)
             .ToListAsync();
@@ -187,12 +192,12 @@ public class StatisticsController : ApiControllerBase
             {
                 UserId = g.Key.UserId,
                 UserName = g.Key.Name,
-                TotalAmount = g.Sum(x => x.f.Amount),
+                TotalAmount = g.Where(x=>x.c.IncludeInTotal).Sum(x => x.f.Amount),
                 TotalCommission = g.Sum(x => x.f.Amount * x.c.CommissionRate),
                 TotalTax = g.Sum(x => x.f.Amount * x.c.TaxRate),
-                FinalAmount = g.Sum(x => x.f.Amount - x.f.Amount * x.c.CommissionRate - x.f.Amount * x.c.TaxRate),
+                FinalAmount = g.Sum(x => x.f.Amount * x.c.CommissionRate - x.f.Amount * x.c.TaxRate),
                 OrderCount = g.Count(),
-                AvgOrderAmount = g.Average(x => x.f.Amount)
+                AvgOrderAmount = g.Where(x=>x.c.IncludeInTotal).Average(x => x.f.Amount)
             })
             //.OrderByDescending(x => x.FinalAmount)
             .Take(top)
@@ -259,12 +264,12 @@ public class StatisticsController : ApiControllerBase
         var revenueData = await (
             from f in query
             join c in _db.Q<CommissionTypeEntity>() on f.CommissionTypeId equals c.Id
-            select new { f.Amount, c.CommissionRate, c.TaxRate }
+            select new { f.Amount, c.CommissionRate, c.TaxRate, c.IncludeInTotal }
         ).ToListAsync();
-        var totalAmount = revenueData.Sum(x => x.Amount);
+        var totalAmount = revenueData.Where(x=>x.IncludeInTotal).Sum(x => x.Amount);
         var totalCommission = revenueData.Sum(x => x.Amount * x.CommissionRate);
         var totalTax = revenueData.Sum(x => x.Amount * x.TaxRate);
-        var finalAmount = totalAmount - totalCommission - totalTax;
+        var finalAmount = totalCommission - totalTax;
         var result = new RevenueAnalysisResult
         {
             TotalAmount = totalAmount,

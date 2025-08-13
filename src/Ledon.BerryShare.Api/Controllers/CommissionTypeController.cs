@@ -26,7 +26,8 @@ public class CommissionTypeController : ApiControllerBase
             .WhereIf(!string.IsNullOrEmpty(query.Search), q => q.Where(c => c.Name.Contains(query.Search!)))
             .WhereIf(query.GuildId.HasValue, q => q.Where(c => c.GuildId == query.GuildId!.Value))
             .OrderByDescending(c => c.CreateAt)
-            .Select(c => new Ledon.BerryShare.Shared.Results.CommissionTypeResult {
+            .Select(c => new Ledon.BerryShare.Shared.Results.CommissionTypeResult
+            {
                 Id = c.Id,
                 Name = c.Name,
                 Description = c.Description,
@@ -37,7 +38,8 @@ public class CommissionTypeController : ApiControllerBase
                 IsActive = c.IsActive,
                 IsDeleted = c.IsDeleted,
                 CreateAt = c.CreateAt,
-                ModifyAt = c.ModifyAt
+                ModifyAt = c.ModifyAt,
+                IncludeInTotal = c.IncludeInTotal
             })
             .ToPagedListAsync(query.PageIndex, query.PageSize);
         return BerryOk(compositions);
@@ -111,7 +113,8 @@ public class CommissionTypeController : ApiControllerBase
             IsActive = composition.IsActive,
             IsDeleted = composition.IsDeleted,
             CreateAt = composition.CreateAt,
-            ModifyAt = composition.ModifyAt
+            ModifyAt = composition.ModifyAt,
+            IncludeInTotal = composition.IncludeInTotal
         };
 
         return BerryOk(result);
@@ -213,7 +216,8 @@ public class CommissionTypeController : ApiControllerBase
             IsActive = c.IsActive,
             IsDeleted = c.IsDeleted,
             CreateAt = c.CreateAt,
-            ModifyAt = c.ModifyAt
+            ModifyAt = c.ModifyAt,
+            IncludeInTotal = c.IncludeInTotal
         }).ToList();
 
         return BerryOk(commissionTypes);

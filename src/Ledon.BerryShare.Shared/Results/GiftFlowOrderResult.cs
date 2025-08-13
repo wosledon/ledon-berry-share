@@ -18,7 +18,7 @@ public class GiftFlowOrderResult
 
     public Guid GuildId { get; set; }
     // 工会信息
-    public string GuildName { get; set; } = default!;
+    public string GuildName { get; set; } = string.Empty;
 }
 
 public class GiftFlowResult
@@ -39,7 +39,7 @@ public class GiftFlowResult
 
     decimal TaxRate => CommissionType?.TaxRate ?? 0;
 
-    public decimal FinalAmount => Amount - CommissionAmount - TaxRateAmount;
+    public decimal FinalAmount =>  CommissionAmount - TaxRateAmount;
 
     public Guid UserId { get; set; }
     // 关联的用户

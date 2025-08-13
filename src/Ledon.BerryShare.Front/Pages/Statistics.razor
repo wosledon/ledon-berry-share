@@ -23,6 +23,18 @@
                 <span class="input-group-text">到</span>
                 <input type="date" class="form-control" @bind="endDate" />
             </div>
+            <div class="input-group" style="width: 200px;">
+                <span class="input-group-text">
+                    <i class="bi bi-building"></i>
+                </span>
+                <select class="form-select" @bind="selectedGuildId">
+                    <option value="">全部公会</option>
+                    @foreach (var g in guilds)
+                    {
+                        <option value="@g.Id">@g.Name</option>
+                    }
+                </select>
+            </div>
             <button class="btn btn-primary" @onclick="RefreshData">
                 <i class="bi bi-arrow-clockwise me-1"></i>刷新
             </button>
@@ -178,6 +190,9 @@
     private DateTime? startDate = DateTime.Now.AddDays(-30);
     private DateTime? endDate = DateTime.Now;
 
+    private List<Ledon.BerryShare.Shared.Results.GuildResult> guilds = new();
+    private Guid? selectedGuildId = null;
+
     private KpiStatisticsResult? kpiData;
     private List<CommissionDistributionResult>? commissionData;
     private List<FlowTrendResult>? trendData;
@@ -187,7 +202,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadGuilds();
         await LoadData();
+    }
+
+    private async Task LoadGuilds()
+    {
+        var result = await ApiService.GetAsync<BerryResult<List<Ledon.BerryShare.Shared.Results.GuildResult>>>("api/v1/guild/list?pageIndex=1&pageSize=100");
+        guilds = result?.Data ?? new List<Ledon.BerryShare.Shared.Results.GuildResult>();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -203,7 +225,7 @@
     {
         try
         {
-            var guildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : (Guid?)null;
+            var guildId = selectedGuildId.HasValue && selectedGuildId.Value != Guid.Empty ? selectedGuildId : null;
             var startParam = startDate?.ToString("yyyy-MM-dd");
             var endParam = endDate?.ToString("yyyy-MM-dd");
             var queryParams = $"?{(guildId.HasValue ? $"guildId={guildId}&" : "")}{(!string.IsNullOrEmpty(startParam) ? $"startDate={startParam}&" : "")}{(!string.IsNullOrEmpty(endParam) ? $"endDate={endParam}" : "")}";

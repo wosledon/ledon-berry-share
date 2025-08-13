@@ -57,7 +57,8 @@ public class BerryShareDbContext : DbContext
                 CommissionRate = 0.5m,
                 TaxRate = 0.04m,
                 Description = "普通礼物流水描述",
-                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                IncludeInTotal = true
             },
             new Ledon.BerryShare.Shared.Entities.CommissionTypeEntity
             {
@@ -66,7 +67,8 @@ public class BerryShareDbContext : DbContext
                 CommissionRate = 0.5m,
                 TaxRate = 0.02m,
                 Description = "幸运礼物流水描述",
-                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                IncludeInTotal = true
             },
             new Ledon.BerryShare.Shared.Entities.CommissionTypeEntity
             {
@@ -75,7 +77,8 @@ public class BerryShareDbContext : DbContext
                 CommissionRate = 0.1m,
                 TaxRate = 0.04m,
                 Description = "管理员抽成描述",
-                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+                GuildId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+                IncludeInTotal = false
             }
         });
 

@@ -42,6 +42,6 @@ public class UserEntity : EntityBase
     // public virtual ICollection<GiftFlowEntity> GiftFlowTypes { get; set; } = new List<GiftFlowEntity>();
 
     public Guid? GiftFlowTypeId { get; set; }
-    [JsonIgnore]
+    // [JsonIgnore]
     public virtual GiftFlowTypeEntity? GiftFlowType { get; set; }
 }
