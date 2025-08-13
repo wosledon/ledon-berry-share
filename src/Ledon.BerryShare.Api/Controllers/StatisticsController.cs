@@ -28,7 +28,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(o => o.OrderAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(o => o.OrderAt <= endDate.Value);
+            query = query.Where(o => o.OrderAt < endDate.Value.AddDays(1));
         var orderStats = await query
             .GroupBy(o => 1)
             .Select(g => new {
@@ -39,7 +39,7 @@ public class StatisticsController : ApiControllerBase
             .FirstOrDefaultAsync();
         var giftFlowStats = await _db.Q<GiftFlowEntity>()
             .Where(f => !startDate.HasValue || f.FlowAt >= startDate.Value)
-            .Where(f => !endDate.HasValue || f.FlowAt <= endDate.Value)
+            .Where(f => !endDate.HasValue || f.FlowAt < endDate.Value.AddDays(1))
             .GroupBy(f => 1)
             .Select(g => new {
                 TotalCommission = g.Sum(f => f.Amount * (f.CommissionType != null ? f.CommissionType.CommissionRate : 0)),
@@ -85,7 +85,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(f => f.FlowAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(f => f.FlowAt <= endDate.Value.AddDays(1));
+            query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
         var commissionData = await query
             .Join(_db.Q<CommissionTypeEntity>(),
                 f => f.CommissionTypeId,
@@ -121,7 +121,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(o => o.OrderAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(o => o.OrderAt <= endDate.Value);
+            query = query.Where(o => o.OrderAt < endDate.Value.AddDays(1));
         var orders = await query
             .Select(o => new { o.Id, o.OrderAt, o.Amount })
             .ToListAsync();
@@ -177,7 +177,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(f => f.FlowAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(f => f.FlowAt <= endDate.Value);
+            query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
         var userPerformance = await (
             from f in query
             join u in _db.Q<UserEntity>() on f.UserId equals u.Id
@@ -214,7 +214,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(o => o.OrderAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(o => o.OrderAt <= endDate.Value);
+            query = query.Where(o => o.OrderAt < endDate.Value.AddDays(1));
         var guildData = await (
             from o in query
             join g in _db.Q<GuildEntity>() on o.GuildId equals g.Id
@@ -229,7 +229,7 @@ public class StatisticsController : ApiControllerBase
                 ActiveUsers = _db.Q<GiftFlowEntity>()
                     .Where(f => f.GuildId == grp.Key.GuildId)
                     .Where(f => !startDate.HasValue || f.FlowAt >= startDate.Value)
-                    .Where(f => !endDate.HasValue || f.FlowAt <= endDate.Value)
+                    .Where(f => !endDate.HasValue || f.FlowAt < endDate.Value.AddDays(1))
                     .Select(f => f.UserId)
                     .Distinct()
                     .Count()
@@ -255,7 +255,7 @@ public class StatisticsController : ApiControllerBase
         if (startDate.HasValue)
             query = query.Where(f => f.FlowAt >= startDate.Value);
         if (endDate.HasValue)
-            query = query.Where(f => f.FlowAt <= endDate.Value);
+            query = query.Where(f => f.FlowAt < endDate.Value.AddDays(1));
         var revenueData = await (
             from f in query
             join c in _db.Q<CommissionTypeEntity>() on f.CommissionTypeId equals c.Id
