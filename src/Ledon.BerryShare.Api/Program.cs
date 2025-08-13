@@ -94,7 +94,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseWebAssemblyDebugging();
 
-//app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 
 // app.UseHttpsRedirection();
 
