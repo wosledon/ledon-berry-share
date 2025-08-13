@@ -3,18 +3,47 @@
 @using Ledon.BerryShare.Shared
 @using Ledon.BerryShare.Shared.Entities
 @inject Services.ApiService ApiService
+@inject IJSRuntime JSRuntime
 
-<h3>公会管理</h3>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+            <i class="bi bi-building text-white"></i>
+        </div>
+        <div>
+            <h3 class="mb-0">公会管理</h3>
+            <small class="text-muted">管理公会组织架构</small>
+        </div>
+    </div>
+    <button class="btn btn-primary" @onclick="ShowAdd">
+        <i class="bi bi-plus-lg me-2"></i>新增公会
+    </button>
+</div>
 
-<div class="row mb-3">
-    <div class="col-md-4">
-        <input class="form-control" placeholder="搜索公会名称..." @bind="search" @bind:event="oninput" />
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="ShowAdd">新增</button>
+<!-- 搜索筛选卡片 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label text-muted small">搜索公会</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input class="form-control" placeholder="搜索公会名称..." @bind="search" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button class="btn btn-primary" @onclick="OnSearch">
+                        <i class="bi bi-search me-1"></i>搜索
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="ResetSearch">
+                        <i class="bi bi-arrow-clockwise me-1"></i>重置
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -41,8 +70,17 @@ else
                     <td>@g.Description</td>
                     <td>@g.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
-                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(g)">详情</button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(g)">编辑</button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info" @onclick="() => ShowDetail(g)" title="查看详情">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning" @onclick="() => ShowEdit(g)" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="() => DeleteGuild(g.Id)" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             }
@@ -190,6 +228,13 @@ else
         await LoadData();
     }
 
+    private async Task ResetSearch()
+    {
+        search = string.Empty;
+        pageIndex = 1;
+        await LoadData();
+    }
+
     private async Task PrevPage()
     {
         if (pageIndex > 1)
@@ -267,6 +312,25 @@ else
             var result = await ApiService.PostAsync<GuildEntity>("api/v1/guild/create", addGuild);
             await LoadData();
             CloseAddModal();
+        }
+    }
+
+    private async Task DeleteGuild(Guid guildId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "确定要删除这个公会吗？"))
+        {
+            try
+            {
+                var result = await ApiService.DeleteAsync<BerryResult<bool>>($"api/v1/guild/delete/{guildId}");
+                if (result?.Code == BerryResult.StatusCodeEnum.Success)
+                {
+                    await LoadData();
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"删除失败: {ex.Message}");
+            }
         }
     }
 }

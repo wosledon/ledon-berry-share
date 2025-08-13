@@ -1,68 +1,274 @@
+/* 品牌区域样式 - 简约风 */
+.bg-gradient-primary {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: white;
+    box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+    transition: all 0.2s ease;
+}
+
+.brand-icon .bi {
+    margin-right: 0;
+    width: auto;
+    height: auto;
+}
+
+.brand-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+.brand-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #212529;
+    line-height: 1.2;
+}
+
+.brand-subtitle {
+    font-size: 0.8rem;
+    color: #6c757d;
+    line-height: 1;
+}
+
+/* 导航链接样式 - 简约风 */
+.nav.flex-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-link {
+    padding: 0.75rem 1rem !important;
+    margin: 0.125rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #495057;
+}
+
+.nav-link:hover {
+    background-color: #f8f9fa !important;
+    color: #007bff !important;
+    text-decoration: none;
+}
+
+.nav-link.active {
+    background-color: #e3f2fd !important;
+    color: #007bff !important;
+    border-left: 3px solid #007bff;
+}
+
+.nav-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+    margin-right: 0.75rem;
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link.active .nav-icon {
+    color: #007bff;
+}
+
+.nav-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    flex: 1;
+}
+
+.nav-link:hover .nav-text,
+.nav-link.active .nav-text {
+    color: #007bff;
+}
+
+.nav-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.nav-desc {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.1rem;
+    line-height: 1.2;
+}
+
+/* 分割线样式 - 简约风 */
+.nav-divider {
+    margin: 0.75rem 1rem 0.5rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid #e9ecef;
+    position: relative;
+}
+
+.nav-divider-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* 特色链接样式 - 简约风 */
+.nav-link.featured {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107;
+    position: relative;
+}
+
+.nav-link.featured:hover {
+    background-color: #ffeaa7 !important;
+}
+
+.featured-badge {
+    background-color: #ffc107;
+    color: #212529;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* 底部信息样式 - 简约风 */
+.nav-footer {
+    margin-top: auto;
+    padding: 1rem;
+    border-top: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    flex-shrink: 0;
+}
+
+.nav-footer-content {
+    text-align: center;
+}
+
+/* 原有样式保留和改进 */
 .navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.navbar-toggler:hover {
+    background-color: #f8f9fa;
 }
 
 .top-row {
     min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .navbar-brand {
     font-size: 1.1rem;
+    color: #212529 !important;
+    text-decoration: none;
 }
 
 .bi {
     display: inline-block;
-    position: relative;
+    vertical-align: middle;
     width: 1.25rem;
     height: 1.25rem;
     margin-right: 0.75rem;
-    top: -1px;
-    background-size: cover;
-}
-
-.bi-house-door-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-house-door-fill' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z'/%3E%3C/svg%3E");
-}
-
-.bi-plus-square-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-plus-square-fill' viewBox='0 0 16 16'%3E%3Cpath d='M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 1 0z'/%3E%3C/svg%3E");
-}
-
-.bi-list-nested-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-list-nested' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
+    line-height: 1;
 }
 
 .nav-item {
     font-size: 0.9rem;
+    padding-bottom: 0.125rem;
+}
+
+.nav-item:first-of-type {
+    padding-top: 0.5rem;
+}
+
+.nav-item:last-of-type {
     padding-bottom: 0.5rem;
 }
 
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-    }
+.nav-item ::deep a {
+    color: #495057;
+    border-radius: 6px;
+    height: auto;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    line-height: 1.5;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    margin: 0.125rem 0.5rem;
+    transition: all 0.2s ease;
+}
 
 .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
+    background-color: #e3f2fd;
+    color: #007bff;
+    border-left: 3px solid #007bff;
 }
 
 .nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+    background-color: #f8f9fa;
+    color: #007bff;
+    text-decoration: none;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+    .nav-desc {
+        display: none;
+    }
+    
+    .featured-badge {
+        display: none;
+    }
+    
+    .brand-subtitle {
+        display: none;
+    }
+    
+    .nav-content {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+@media (max-width: 640.98px) {
+    .nav-desc {
+        display: none;
+    }
+    
+    .featured-badge {
+        display: none;
+    }
+    
+    .brand-subtitle {
+        display: none;
+    }
 }
 
 @media (min-width: 641px) {
@@ -71,13 +277,13 @@
     }
 
     .collapse {
-        /* Never collapse the sidebar for wide screens */
         display: block;
     }
 
     .nav-scrollable {
-        /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
 }

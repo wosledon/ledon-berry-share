@@ -2,12 +2,207 @@
 @inject Ledon.BerryShare.Front.Services.ITokenProvider TokenProvider
 @inject NavigationManager NavigationManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>BerryShare - 首页</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid">
+    <!-- 欢迎横幅 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body py-5">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="display-4 fw-bold mb-3">
+                                <i class="bi bi-gem me-3"></i>
+                                欢迎使用 BerryShare
+                            </h1>
+                            <p class="lead mb-0">专业的流水分成管理系统，让收益分配变得简单透明</p>
+                        </div>
+                        <div class="col-md-4 text-end d-none d-md-block">
+                            <i class="bi bi-graph-up-arrow" style="font-size: 4rem; opacity: 0.3;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <!-- 快捷操作卡片 -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(45deg, #4CAF50, #81C784);">
+                            <i class="bi bi-people-fill text-white" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="card-title">人员管理</h5>
+                    <p class="card-text text-muted">管理公会成员信息</p>
+                    <a href="/user" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
 
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(45deg, #2196F3, #64B5F6);">
+                            <i class="bi bi-building text-white" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="card-title">公会管理</h5>
+                    <p class="card-text text-muted">创建和管理公会信息</p>
+                    <a href="/guild" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(45deg, #FF9800, #FFB74D);">
+                            <i class="bi bi-diagram-3-fill text-white" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="card-title">分成类型</h5>
+                    <p class="card-text text-muted">配置分成比例和税率</p>
+                    <a href="/comm-type" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(45deg, #9C27B0, #BA68C8);">
+                            <i class="bi bi-flow text-white" style="font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+                    <h5 class="card-title">流水组成</h5>
+                    <p class="card-text text-muted">设置流水类型组合</p>
+                    <a href="/gift-flow-type" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 流水单管理重点展示 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="card-title mb-3">
+                                <i class="bi bi-receipt me-2 text-primary"></i>
+                                流水单管理
+                            </h3>
+                            <p class="card-text text-muted mb-3">
+                                创建和管理流水单，实时查看收益分配情况，生成详细的分成报表
+                            </p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-check-circle me-1"></i>实时计算
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-check-circle me-1"></i>详细报表
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-check-circle me-1"></i>透明分成
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="/gift-flow-order" class="btn btn-primary btn-lg">
+                                <i class="bi bi-plus-lg me-2"></i>管理流水单
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        系统概览
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-1">
+                                    <i class="bi bi-people"></i>
+                                </h4>
+                                <p class="text-muted mb-0 small">成员管理</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-success mb-1">
+                                    <i class="bi bi-building"></i>
+                                </h4>
+                                <p class="text-muted mb-0 small">公会组织</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-warning mb-1">
+                                    <i class="bi bi-calculator"></i>
+                                </h4>
+                                <p class="text-muted mb-0 small">智能分成</p>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <h4 class="text-info mb-1">
+                                <i class="bi bi-graph-up"></i>
+                            </h4>
+                            <p class="text-muted mb-0 small">数据分析</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+    
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+</style>
 
 @code {
     protected override async Task OnInitializedAsync()

@@ -1,6 +1,14 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿<div class="top-row ps-3 navbar navbar-light bg-gradient-primary">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Ledon.BerryShare.Front</a>
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <div class="brand-icon me-2">
+                <i class="bi bi-share-fill"></i>
+            </div>
+            <div>
+                <div class="brand-title">莓分成</div>
+                <div class="brand-subtitle">流水分成管理</div>
+            </div>
+        </a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -9,37 +17,107 @@
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="nav flex-column">
+        <!-- 首页 -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <i class="bi bi-house-door nav-icon" aria-hidden="true"></i>
+                <span class="nav-text">首页</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="guild">
-                <span class="bi bi-people-fill" aria-hidden="true"></span> 公会管理
-            </NavLink>
+        
+        <!-- 分割线 -->
+        <div class="nav-divider">
+            <span class="nav-divider-text">人员与组织</span>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="comm-type">
-                <span class="bi bi-file-earmark-text" aria-hidden="true"></span> 分成类型
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="gift-flow-type">
-                <span class="bi bi-list-ul" aria-hidden="true"></span> 流水组成
-            </NavLink>
-        </div>
+        
+        <!-- 人员管理 -->
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="user">
-                <span class="bi bi-person-badge" aria-hidden="true"></span> 人员管理
+                <i class="bi bi-people nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">人员管理</span>
+                    <small class="nav-desc">管理成员信息</small>
+                </div>
             </NavLink>
         </div>
+        
+        <!-- 公会管理 -->
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="gift-flow-order">
-                <span class="bi bi-cash-stack" aria-hidden="true"></span> 礼物流水
+            <NavLink class="nav-link" href="guild">
+                <i class="bi bi-building nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">公会管理</span>
+                    <small class="nav-desc">组织架构管理</small>
+                </div>
+            </NavLink>
+        </div>
+        
+        <!-- 分割线 -->
+        <div class="nav-divider">
+            <span class="nav-divider-text">系统配置</span>
+        </div>
+        
+        <!-- 分成类型 -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="comm-type">
+                <i class="bi bi-percent nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">分成类型</span>
+                    <small class="nav-desc">分成比例配置</small>
+                </div>
+            </NavLink>
+        </div>
+        
+        <!-- 流水组成 -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="gift-flow-type">
+                <i class="bi bi-diagram-2 nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">流水组成</span>
+                    <small class="nav-desc">流水类型组合</small>
+                </div>
+            </NavLink>
+        </div>
+        
+        <!-- 分割线 -->
+        <div class="nav-divider">
+            <span class="nav-divider-text">业务功能</span>
+        </div>
+        
+        <!-- 流水单管理 -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link featured" href="gift-flow-order">
+                <i class="bi bi-receipt nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">流水单管理</span>
+                    <small class="nav-desc">收益分配管理</small>
+                </div>
+            </NavLink>
+        </div>
+        
+        <!-- 统计分析 -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="statistics">
+                <i class="bi bi-bar-chart nav-icon" aria-hidden="true"></i>
+                <div class="nav-content">
+                    <span class="nav-text">统计分析</span>
+                    <small class="nav-desc">数据图表分析</small>
+                </div>
             </NavLink>
         </div>
     </nav>
+    
+    <!-- 底部信息 -->
+    <div class="nav-footer">
+        <div class="nav-footer-content">
+            <div class="text-center">
+                <small class="text-muted">
+                    <i class="bi bi-shield-check me-1"></i>
+                    简约 · 高效 · 可靠
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {

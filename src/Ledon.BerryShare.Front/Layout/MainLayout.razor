@@ -1,4 +1,6 @@
-﻿@using Ledon.BerryShare.Shared
+﻿@using Ledon.BerryShare.Front.Layout
+@using Ledon.BerryShare.Front.Pages
+@using Ledon.BerryShare.Shared
 @using Ledon.BerryShare.Shared.Entities
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
@@ -12,19 +14,47 @@
 
             <main>
                 <div class="top-row px-4">
-                    <a href="https://learn.microsoft.com/aspnet/core/"
-                        target="_blank">About</a>
+                    <div class="top-row-content">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                            <div class="user-details">
+                                <span class="user-name">管理员</span>
+                                <small class="user-role">系统管理员</small>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-outline-primary btn-sm me-2" title="系统设置">
+                                <i class="bi bi-gear"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm me-2" title="帮助">
+                                <i class="bi bi-question-circle"></i>
+                            </button>
+                            <a href="https://learn.microsoft.com/aspnet/core/" 
+                               target="_blank" 
+                               class="btn btn-outline-info btn-sm"
+                               title="技术文档">
+                                <i class="bi bi-book me-1"></i>
+                                文档
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <article class="content px-4">
-                    @Body
+                    <div class="content-wrapper">
+                        @Body
+                    </div>
                 </article>
                 <Toast />
             </main>
         </div>
     </Authorized>
     <NotAuthorized>
-        <Ledon.BerryShare.Front.Pages.Login />
+        <div class="login-wrapper">
+            <Login />
+        </div>
         <Toast />
     </NotAuthorized>
 </AuthorizeView>

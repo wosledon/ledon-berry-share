@@ -4,75 +4,174 @@
 @using Ledon.BerryShare.Front.Services
 @inject Services.ApiService ApiService
 @using Ledon.BerryShare.Shared.Results
+@inject IJSRuntime JSRuntime
 
-<h3>分成类型</h3>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+            <i class="bi bi-diagram-3-fill text-white"></i>
+        </div>
+        <div>
+            <h3 class="mb-0">分成类型</h3>
+            <small class="text-muted">管理分成比例和税率配置</small>
+        </div>
+    </div>
+    <button class="btn btn-primary" @onclick="ShowAdd">
+        <i class="bi bi-plus-lg me-2"></i>新增分成类型
+    </button>
+</div>
 
-<div class="row mb-3">
-    <div class="col-md-3">
-        <input class="form-control" placeholder="搜索分成类型..." @bind="search" @bind:event="oninput" />
-    </div>
-    <div class="col-md-3">
-        <select class="form-select" @bind="selectedGuildId">
-            <option value="">全部公会</option>
-            @foreach (var g in guilds)
-            {
-                <option value="@g.Id">@g.Name</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="ShowAdd">新增</button>
+<!-- 搜索筛选卡片 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">搜索条件</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input class="form-control" placeholder="搜索分成类型..." @bind="search" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">所属公会</label>
+                <select class="form-select" @bind="selectedGuildId">
+                    <option value="">全部公会</option>
+                    @foreach (var g in guilds)
+                    {
+                        <option value="@g.Id">@g.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button class="btn btn-primary" @onclick="OnSearch">
+                        <i class="bi bi-search me-1"></i>搜索
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="ResetSearch">
+                        <i class="bi bi-arrow-clockwise me-1"></i>重置
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @if (compositions == null)
 {
-    <p>加载中...</p>
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <p class="text-muted mt-3">数据加载中...</p>
+    </div>
+}
+else if (!compositions.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-diagram-3" style="font-size: 3rem; color: #6c757d;"></i>
+            </div>
+            <h5 class="text-muted">暂无分成类型数据</h5>
+            <p class="text-muted">点击上方"新增分成类型"按钮开始添加</p>
+            <button class="btn btn-primary" @onclick="ShowAdd">
+                <i class="bi bi-plus-lg me-2"></i>新增分成类型
+            </button>
+        </div>
+    </div>
 }
 else
 {
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>名称</th>
-                <th>描述</th>
-                <th>分成比例</th>
-                <th>税率</th>
-                <th>创建时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in compositions)
-            {
-                <tr>
-                    <td>@c.Name</td>
-                    <td>@c.Description</td>
-                    <td>@((c.CommissionRate * 100).ToString("0.##"))%</td>
-                    <td>@((c.TaxRate * 100).ToString("0.##"))%</td>
-                    <td>@c.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(c)">详情</button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(c)">编辑</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-tag me-2"></i>名称
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-card-text me-2"></i>描述
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-percent me-2"></i>分成比例
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-calculator me-2"></i>税率
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-calendar me-2"></i>创建时间
+                            </th>
+                            <th class="border-0 fw-semibold text-center" width="200">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in compositions)
+                        {
+                            <tr class="align-middle">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
+                                            <span class="text-white small fw-bold">@c.Name.Take(1).FirstOrDefault()</span>
+                                        </div>
+                                        <span class="fw-semibold">@c.Name</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@(!string.IsNullOrEmpty(c.Description) ? c.Description : "暂无描述")</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success text-white fs-6">
+                                        <i class="bi bi-percent me-1"></i>@((c.CommissionRate * 100).ToString("0.##"))%
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger text-white fs-6">
+                                        <i class="bi bi-calculator me-1"></i>@((c.TaxRate * 100).ToString("0.##"))%
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">@c.CreateAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-info" @onclick="() => ShowDetail(c)" title="查看详情">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" @onclick="() => ShowEdit(c)" title="编辑">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" @onclick="() => DeleteCommissionType(c.Id)" title="删除">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <nav>
-        <ul class="pagination">
+    <!-- 分页 -->
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
             <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="PrevPage">上一页</button>
+                <button class="page-link" @onclick="PrevPage">
+                    <i class="bi bi-chevron-left"></i> 上一页
+                </button>
             </li>
             <li class="page-item disabled">
-                <span class="page-link">第 @pageIndex 页 / 共 @totalPages 页</span>
+                <span class="page-link bg-light">第 @pageIndex 页 / 共 @totalPages 页</span>
             </li>
             <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="NextPage">下一页</button>
+                <button class="page-link" @onclick="NextPage">
+                    下一页 <i class="bi bi-chevron-right"></i>
+                </button>
             </li>
         </ul>
     </nav>
@@ -221,6 +320,14 @@ else
         await LoadData();
     }
 
+    private async Task ResetSearch()
+    {
+        search = string.Empty;
+        selectedGuildId = null;
+        pageIndex = 1;
+        await LoadData();
+    }
+
     private async Task PrevPage()
     {
         if (pageIndex > 1)
@@ -299,6 +406,25 @@ else
             var result = await ApiService.PostAsync<CommissionTypeEntity>("api/v1/commissiontype/create", addComposition);
             await LoadData();
             CloseAddModal();
+        }
+    }
+
+    private async Task DeleteCommissionType(Guid commissionTypeId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "确定要删除这个分成类型吗？"))
+        {
+            try
+            {
+                var result = await ApiService.DeleteAsync<BerryResult<bool>>($"api/v1/commissiontype/delete/{commissionTypeId}");
+                if (result?.Code == BerryResult.StatusCodeEnum.Success)
+                {
+                    await LoadData();
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"删除失败: {ex.Message}");
+            }
         }
     }
 }

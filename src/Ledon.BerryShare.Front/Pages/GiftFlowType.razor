@@ -4,75 +4,195 @@
 @using Ledon.BerryShare.Shared.Entities
 @inject Services.ApiService ApiService
 @using Ledon.BerryShare.Shared.Results
+@inject IJSRuntime JSRuntime
 
-<h3>流水组成</h3>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+            <i class="bi bi-flow text-white"></i>
+        </div>
+        <div>
+            <h3 class="mb-0">流水组成</h3>
+            <small class="text-muted">管理流水类型组合配置</small>
+        </div>
+    </div>
+    <button class="btn btn-primary" @onclick="ShowAdd">
+        <i class="bi bi-plus-lg me-2"></i>新增流水组成
+    </button>
+</div>
 
-<div class="row mb-3">
-    <div class="col-md-3">
-        <input class="form-control" placeholder="搜索流水组成..." @bind="search" @bind:event="oninput" />
-    </div>
-    <div class="col-md-3">
-        <select class="form-select" @bind="selectedGuildId">
-            <option value="">全部公会</option>
-            @foreach (var g in guilds)
-            {
-                <option value="@g.Id">@g.Name</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="OnSearch">搜索</button>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-primary" @onclick="ShowAdd">新增</button>
+<!-- 搜索筛选卡片 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">搜索条件</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input class="form-control" placeholder="搜索流水组成..." @bind="search" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">所属公会</label>
+                <select class="form-select" @bind="selectedGuildId">
+                    <option value="">全部公会</option>
+                    @foreach (var g in guilds)
+                    {
+                        <option value="@g.Id">@g.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button class="btn btn-primary" @onclick="OnSearch">
+                        <i class="bi bi-search me-1"></i>搜索
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="ResetSearch">
+                        <i class="bi bi-arrow-clockwise me-1"></i>重置
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 @if (types == null)
 {
-    <p>加载中...</p>
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <p class="text-muted mt-3">数据加载中...</p>
+    </div>
+}
+else if (!types.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-flow" style="font-size: 3rem; color: #6c757d;"></i>
+            </div>
+            <h5 class="text-muted">暂无流水组成数据</h5>
+            <p class="text-muted">点击上方"新增流水组成"按钮开始添加</p>
+            <button class="btn btn-primary" @onclick="ShowAdd">
+                <i class="bi bi-plus-lg me-2"></i>新增流水组成
+            </button>
+        </div>
+    </div>
 }
 else
 {
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>名称</th>
-                <th>描述</th>
-                <th>所属公会</th>
-                <th>流水组成</th>
-                <th>创建时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var t in types)
-            {
-                <tr>
-                    <td>@t.Name</td>
-                    <td>@t.Description</td>
-                    <td>@t.GuildName</td>
-                    <td>@t.CommissionTypeFlow</td>
-                    <td>@t.CreateAt.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        <button class="btn btn-sm btn-info me-2" @onclick="() => ShowDetail(t)">详情</button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => ShowEdit(t)">编辑</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-tag me-2"></i>名称
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-card-text me-2"></i>描述
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-building me-2"></i>所属公会
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-diagram-3 me-2"></i>流水组成
+                            </th>
+                            <th class="border-0 fw-semibold">
+                                <i class="bi bi-calendar me-2"></i>创建时间
+                            </th>
+                            <th class="border-0 fw-semibold text-center" width="200">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in types)
+                        {
+                            <tr class="align-middle">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px;">
+                                            <span class="text-white small fw-bold">@t.Name.Take(1).FirstOrDefault()</span>
+                                        </div>
+                                        <span class="fw-semibold">@t.Name</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@(!string.IsNullOrEmpty(t.Description) ? t.Description : "暂无描述")</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(t.GuildName))
+                                    {
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-building me-1"></i>@t.GuildName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(t.CommissionTypeFlow))
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var item in t.CommissionTypeFlow.Split(',').Take(3))
+                                            {
+                                                <span class="badge bg-secondary text-white small">@item.Trim()</span>
+                                            }
+                                            @if (t.CommissionTypeFlow.Split(',').Length > 3)
+                                            {
+                                                <span class="badge bg-light text-dark small">+@(t.CommissionTypeFlow.Split(',').Length - 3)</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">未配置</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">@t.CreateAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-info" @onclick="() => ShowDetail(t)" title="查看详情">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" @onclick="() => ShowEdit(t)" title="编辑">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" @onclick="() => DeleteGiftFlowType(t.Id)" title="删除">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <nav>
-        <ul class="pagination">
+    <!-- 分页 -->
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
             <li class="page-item @(pageIndex == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="PrevPage">上一页</button>
+                <button class="page-link" @onclick="PrevPage">
+                    <i class="bi bi-chevron-left"></i> 上一页
+                </button>
             </li>
             <li class="page-item disabled">
-                <span class="page-link">第 @pageIndex 页 / 共 @totalPages 页</span>
+                <span class="page-link bg-light">第 @pageIndex 页 / 共 @totalPages 页</span>
             </li>
             <li class="page-item @(pageIndex == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="NextPage">下一页</button>
+                <button class="page-link" @onclick="NextPage">
+                    下一页 <i class="bi bi-chevron-right"></i>
+                </button>
             </li>
         </ul>
     </nav>
@@ -378,6 +498,14 @@ else
         await LoadData();
     }
 
+    private async Task ResetSearch()
+    {
+        search = string.Empty;
+        selectedGuildId = null;
+        pageIndex = 1;
+        await LoadData();
+    }
+
     private async Task PrevPage()
     {
         if (pageIndex > 1)
@@ -553,6 +681,25 @@ else
         if (item != null)
         {
             currentList.Remove(item);
+        }
+    }
+
+    private async Task DeleteGiftFlowType(Guid giftFlowTypeId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "确定要删除这个流水组成吗？"))
+        {
+            try
+            {
+                var result = await ApiService.DeleteAsync<BerryResult<bool>>($"api/v1/giftflowtype/delete/{giftFlowTypeId}");
+                if (result?.Code == BerryResult.StatusCodeEnum.Success)
+                {
+                    await LoadData();
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"删除失败: {ex.Message}");
+            }
         }
     }
 }

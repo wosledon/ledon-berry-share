@@ -1,0 +1,554 @@
+@page "/statistics"
+@using Ledon.BerryShare.Shared.Results
+@using Ledon.BerryShare.Front.Services
+@using System.Text.Json
+@inject ApiService ApiService
+@inject GuildContextService GuildContext
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-bar-chart-line me-2"></i>数据统计
+        </h3>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 200px;">
+                <span class="input-group-text">
+                    <i class="bi bi-calendar"></i>
+                </span>
+                <input type="date" class="form-control" @bind="startDate" />
+            </div>
+            <div class="input-group" style="width: 200px;">
+                <span class="input-group-text">到</span>
+                <input type="date" class="form-control" @bind="endDate" />
+            </div>
+            <button class="btn btn-primary" @onclick="RefreshData">
+                <i class="bi bi-arrow-clockwise me-1"></i>刷新
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI 卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@GetPropertyValue(kpiData, "TotalOrders", "0")</h4>
+                            <p class="card-text">流水单数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-receipt" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">¥@GetFormattedAmount(kpiData, "TotalAmount")</h4>
+                            <p class="card-text">总流水金额</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-currency-dollar" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@GetPropertyValue(kpiData, "ActiveUsers", "0")</h4>
+                            <p class="card-text">活跃用户数</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">¥@GetFormattedAmount(kpiData, "TotalFinal")</h4>
+                            <p class="card-text">总实得金额</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-wallet2" style="font-size: 2rem;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row">
+        <!-- 流水趋势图 -->
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>流水趋势分析
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分成类型分布 -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-pie-chart me-2"></i>分成类型分布
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="commissionChart" width="300" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- 人员绩效排行 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-trophy me-2"></i>人员绩效排行榜
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="userPerformanceChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收支分析 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-pie-chart-fill me-2"></i>收支结构分析
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 公会对比（如果有多个公会） -->
+    @if (guildData?.Count > 1)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="bi bi-building me-2"></i>公会对比分析
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="guildChart" width="800" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime? startDate = DateTime.Now.AddDays(-30);
+    private DateTime? endDate = DateTime.Now;
+
+    private JsonElement? kpiData;
+    private List<JsonElement>? commissionData;
+    private List<JsonElement>? trendData;
+    private List<JsonElement>? userPerformanceData;
+    private List<JsonElement>? guildData;
+    private JsonElement? revenueData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(500); // 确保DOM已渲染
+            await InitializeCharts();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var guildId = GuildContext.CurrentGuildId != Guid.Empty ? GuildContext.CurrentGuildId : (Guid?)null;
+            var startParam = startDate?.ToString("yyyy-MM-dd");
+            var endParam = endDate?.ToString("yyyy-MM-dd");
+
+            var queryParams = $"?{(guildId.HasValue ? $"guildId={guildId}&" : "")}" +
+                             $"{(!string.IsNullOrEmpty(startParam) ? $"startDate={startParam}&" : "")}" +
+                             $"{(!string.IsNullOrEmpty(endParam) ? $"endDate={endParam}" : "")}";
+
+            Console.WriteLine($"查询参数: {queryParams}");
+
+            // 加载KPI数据 - 简化版本
+            try 
+            {
+                var kpiUrl = $"api/v1/statistics/kpi{queryParams}";
+                Console.WriteLine($"请求KPI URL: {kpiUrl}");
+                var kpiResponse = await ApiService.GetAsync<object>(kpiUrl);
+                Console.WriteLine($"KPI响应: {JsonSerializer.Serialize(kpiResponse)}");
+                
+                if (kpiResponse != null)
+                {
+                    var jsonString = JsonSerializer.Serialize(kpiResponse);
+                    var jsonDoc = JsonDocument.Parse(jsonString);
+                    kpiData = jsonDoc.RootElement;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"KPI加载失败: {ex.Message}");
+            }
+
+            // 加载分成类型分布 - 简化版本
+            try
+            {
+                var commissionUrl = $"api/v1/statistics/commission-distribution{queryParams}";
+                Console.WriteLine($"请求分成类型 URL: {commissionUrl}");
+                var commissionResponse = await ApiService.GetAsync<object>(commissionUrl);
+                Console.WriteLine($"分成类型响应: {JsonSerializer.Serialize(commissionResponse)}");
+                
+                if (commissionResponse != null)
+                {
+                    var jsonString = JsonSerializer.Serialize(commissionResponse);
+                    var jsonDoc = JsonDocument.Parse(jsonString);
+                    if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                    {
+                        commissionData = dataElement.EnumerateArray().ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"分成类型加载失败: {ex.Message}");
+            }
+
+            // 加载流水趋势
+            var trendResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/flow-trend{queryParams}&period=day");
+            if (trendResult != null)
+            {
+                var jsonString = JsonSerializer.Serialize(trendResult);
+                var jsonDoc = JsonDocument.Parse(jsonString);
+                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                {
+                    trendData = dataElement.EnumerateArray().ToList();
+                }
+            }
+
+            // 加载人员绩效
+            var userResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/user-performance{queryParams}&top=10");
+            if (userResult != null)
+            {
+                var jsonString = JsonSerializer.Serialize(userResult);
+                var jsonDoc = JsonDocument.Parse(jsonString);
+                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                {
+                    userPerformanceData = dataElement.EnumerateArray().ToList();
+                }
+            }
+
+            // 加载公会对比
+            var guildResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/guild-comparison{queryParams}");
+            if (guildResult != null)
+            {
+                var jsonString = JsonSerializer.Serialize(guildResult);
+                var jsonDoc = JsonDocument.Parse(jsonString);
+                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                {
+                    guildData = dataElement.EnumerateArray().ToList();
+                }
+            }
+
+            // 加载收支分析
+            var revenueResult = await ApiService.GetAsync<dynamic>($"api/v1/statistics/revenue-analysis{queryParams}");
+            if (revenueResult != null)
+            {
+                var jsonString = JsonSerializer.Serialize(revenueResult);
+                var jsonDoc = JsonDocument.Parse(jsonString);
+                if (jsonDoc.RootElement.TryGetProperty("data", out JsonElement dataElement))
+                    revenueData = dataElement;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"加载数据失败: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+        await InitializeCharts();
+    }
+
+    private async Task InitializeCharts()
+    {
+        try
+        {
+            if (trendData != null && trendData.Any())
+            {
+                await CreateTrendChart();
+            }
+
+            if (commissionData != null && commissionData.Any())
+            {
+                await CreateCommissionChart();
+            }
+
+            if (userPerformanceData != null && userPerformanceData.Any())
+            {
+                await CreateUserPerformanceChart();
+            }
+
+            if (revenueData != null)
+            {
+                await CreateRevenueChart();
+            }
+
+            if (guildData != null && guildData.Count > 1)
+            {
+                await CreateGuildChart();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"初始化图表失败: {ex.Message}");
+        }
+    }
+
+    private async Task CreateTrendChart()
+    {
+        try
+        {
+            if (trendData == null) return;
+            
+            var labels = trendData.Select(d => GetJsonProperty(d, "Period", "")).ToArray();
+            var amounts = trendData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
+
+            await JSRuntime.InvokeVoidAsync("createTrendChart", "trendChart", labels, new object[]
+            {
+                new { label = "流水金额", data = amounts }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"创建趋势图失败: {ex.Message}");
+        }
+    }
+
+    private async Task CreateCommissionChart()
+    {
+        try
+        {
+            if (commissionData == null) return;
+            
+            var labels = commissionData.Select(d => GetJsonProperty(d, "CommissionTypeName", "")).ToArray();
+            var amounts = commissionData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
+
+            await JSRuntime.InvokeVoidAsync("createPieChart", "commissionChart", labels, amounts, "分成类型分布");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"创建分成类型图失败: {ex.Message}");
+        }
+    }
+
+    private async Task CreateUserPerformanceChart()
+    {
+        try
+        {
+            if (userPerformanceData == null) return;
+            
+            var labels = userPerformanceData.Select(d => GetJsonProperty(d, "UserName", "")).ToArray();
+            var amounts = userPerformanceData.Select(d => GetJsonPropertyAsDecimal(d, "FinalAmount")).ToArray();
+
+            await JSRuntime.InvokeVoidAsync("createBarChart", "userPerformanceChart", labels, new object[]
+            {
+                new { label = "实得金额", data = amounts }
+            }, true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"创建用户绩效图失败: {ex.Message}");
+        }
+    }
+
+    private async Task CreateRevenueChart()
+    {
+        try
+        {
+            if (revenueData == null) return;
+            
+            var labels = new[] { "总金额", "分成金额", "税费金额", "实得金额" };
+            var amounts = new[]
+            {
+                GetJsonPropertyAsDecimal(revenueData.Value, "TotalAmount"),
+                GetJsonPropertyAsDecimal(revenueData.Value, "CommissionAmount"),
+                GetJsonPropertyAsDecimal(revenueData.Value, "TaxAmount"),
+                GetJsonPropertyAsDecimal(revenueData.Value, "FinalAmount")
+            };
+
+            await JSRuntime.InvokeVoidAsync("createDoughnutChart", "revenueChart", labels, amounts, "收支结构");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"创建收支分析图失败: {ex.Message}");
+        }
+    }
+
+    private async Task CreateGuildChart()
+    {
+        try
+        {
+            if (guildData == null) return;
+            
+            var labels = guildData.Select(d => GetJsonProperty(d, "GuildName", "")).ToArray();
+            var amounts = guildData.Select(d => GetJsonPropertyAsDecimal(d, "TotalAmount")).ToArray();
+            var orders = guildData.Select(d => GetJsonPropertyAsInt(d, "TotalOrders")).ToArray();
+
+            await JSRuntime.InvokeVoidAsync("createBarChart", "guildChart", labels, new object[]
+            {
+                new { label = "总金额", data = amounts },
+                new { label = "订单数", data = orders }
+            }, false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"创建公会对比图失败: {ex.Message}");
+        }
+    }
+
+    // 辅助方法
+    private string GetPropertyValue(JsonElement? element, string propertyName, string defaultValue = "")
+    {
+        if (element == null) return defaultValue;
+        
+        try
+        {
+            if (element.Value.TryGetProperty(propertyName, out var property))
+            {
+                return property.ToString();
+            }
+        }
+        catch
+        {
+            // 忽略错误
+        }
+        
+        return defaultValue;
+    }
+
+    private string GetFormattedAmount(JsonElement? element, string propertyName)
+    {
+        if (element == null) return "0.00";
+        
+        try
+        {
+            if (element.Value.TryGetProperty(propertyName, out var property))
+            {
+                if (property.TryGetDecimal(out var value))
+                {
+                    return value.ToString("N2");
+                }
+            }
+        }
+        catch
+        {
+            // 忽略错误
+        }
+        
+        return "0.00";
+    }
+
+    private string GetJsonProperty(JsonElement element, string propertyName, string defaultValue = "")
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var property))
+            {
+                return property.ToString();
+            }
+        }
+        catch
+        {
+            // 忽略错误
+        }
+        
+        return defaultValue;
+    }
+
+    private decimal GetJsonPropertyAsDecimal(JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var property))
+            {
+                if (property.TryGetDecimal(out var value))
+                {
+                    return value;
+                }
+            }
+        }
+        catch
+        {
+            // 忽略错误
+        }
+        
+        return 0;
+    }
+
+    private int GetJsonPropertyAsInt(JsonElement element, string propertyName)
+    {
+        try
+        {
+            if (element.TryGetProperty(propertyName, out var property))
+            {
+                if (property.TryGetInt32(out var value))
+                {
+                    return value;
+                }
+            }
+        }
+        catch
+        {
+            // 忽略错误
+        }
+        
+        return 0;
+    }
+}
