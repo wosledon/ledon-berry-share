@@ -90,9 +90,9 @@ if (app.Environment.IsDevelopment())
 {
     app.MapScalarApiReference();
     app.MapOpenApi();
+    // app.UseWebAssemblyDebugging();
 }
 
-app.UseWebAssemblyDebugging();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
@@ -107,8 +107,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.MapControllers();
-
+app.UseRouting();
 app.MapFallbackToFile("index.html");
 
 app.Run();
