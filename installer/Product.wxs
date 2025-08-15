@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v4 示例安装包定义。
+  构建流程：
+    1. 运行 build-installer.ps1 (会发布 WPF 项目并生成 AppFiles.wxs)
+    2. wix build installer\Product.wxs installer\AppFiles.wxs -d PublishDir="publish\shell" -ext WixToolset.Util.wixext -o publish\BerryShare.msi
+
+  注意：installer\AppFiles.wxs 是由 heat 生成的，不手写。
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="BerryShare"
+           Manufacturer="Ledon"
+           Language="1033"
+           Version="1.0.0"
+           UpgradeCode="{5F8B7A8F-9A91-4B2F-8A89-6B6D0E6C4C61}"
+           Scope="perMachine"
+           InstallerVersion="500">
+
+    <MajorUpgrade AllowDowngrades="no"
+                  DowngradeErrorMessage="A newer version of BerryShare is already installed." />
+
+  <!-- WiX v4: CabinetTemplate must contain {0} or be omitted. Use embedded cab only. -->
+  <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="BerryShare" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="BerryShare" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <Component Id="DesktopShortcut" Guid="*">
+      <Shortcut Id="DesktopShortcut"
+                Name="BerryShare"
+                Directory="DesktopFolder"
+                WorkingDirectory="INSTALLFOLDER"
+                Target="[INSTALLFOLDER]Ledon.Berry.Shell.exe"
+                Icon="AppIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\BerryShare" Name="desktop" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="StartMenuShortcut" Guid="*">
+      <Shortcut Id="StartMenuShortcut"
+                Name="BerryShare"
+                Directory="ProgramMenuFolder"
+                WorkingDirectory="INSTALLFOLDER"
+                Target="[INSTALLFOLDER]Ledon.Berry.Shell.exe"
+                Icon="AppIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\BerryShare" Name="menu" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.PublishDir)\app.ico" />
+
+  <!-- WebView2 runtime silent install removed for initial working MSI; can be re-added with proper v4 custom action later. -->
+
+  </Package>
+</Wix>
