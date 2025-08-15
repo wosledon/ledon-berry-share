@@ -14,23 +14,76 @@ function Run-Cmd($cmd) {
     if ($LASTEXITCODE -ne 0) { throw "Command failed: $cmd" }
 }
 
-$ErrorActionPreference = 'Stop'
-
-# Resolve project paths to absolute to avoid msbuild treating them as switches
-Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
-try {
-    if (Test-Path $ApiProject) { $ApiProject = (Resolve-Path $ApiProject).Path } else { throw "Api project not found: $ApiProject" }
-    if (Test-Path $ShellProject) { $ShellProject = (Resolve-Path $ShellProject).Path } else { throw "Shell project not found: $ShellProject" }
-} catch {
-    Write-Error $_.Exception.Message
-    exit 1
-}
-
-Write-Host "[1/7] Publish API (SelfContained=true SingleFile=$($SingleFileApi.IsPresent))" -ForegroundColor Cyan
-if ($SkipApiPublish) {
-    Write-Host '    Skip API publish (using existing files in assert)' -ForegroundColor Yellow
-} else {
-    $apiOutPath = "..\publish\api"
+    $wxsPath = Join-Path (Get-Location) 'AppFiles.wxs'
+    $allFiles = Get-ChildItem $publishDir -Recurse -File
+    $sb = [System.Text.StringBuilder]::new()
+    [void]$sb.AppendLine('<?xml version="1.0" encoding="UTF-8"?>')
+    [void]$sb.AppendLine('<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">')
+    # ComponentGroup fragment
+    [void]$sb.AppendLine('  <Fragment>')
+    [void]$sb.AppendLine('    <ComponentGroup Id="AppFiles">')
+    # We'll build directory tree separately; components will reference directory IDs.
+    # Build map: directory full path -> directory Id
+    $dirIdMap = @{}
+    $dirIdMap[$publishDir] = 'INSTALLFOLDER'
+    function New-DirId($path){
+        $name = Split-Path $path -Leaf
+        $safe = ($name -replace '[^A-Za-z0-9_]','_')
+        if (-not $safe) { $safe = 'D' }
+        $base = 'Dir_' + $safe
+        $i=1
+        $id=$base
+        while($dirIdMap.Values -contains $id){ $i++; $id = $base + '_' + $i }
+        return $id
+    }
+    $dirs = $allFiles | ForEach-Object { Split-Path $_.FullName -Parent } | Sort-Object -Unique
+    foreach($d in $dirs){
+        if ($d -eq $publishDir) { continue }
+        # ascend until parent mapped
+        $stack = @()
+        $cur = $d
+        while($cur -and -not $dirIdMap.ContainsKey($cur)) { $stack += $cur; $cur = Split-Path $cur -Parent }
+        foreach($p in ($stack | Sort-Object)){
+            if (-not $dirIdMap.ContainsKey($p)) {
+                $dirIdMap[$p] = New-DirId $p
+            }
+        }
+    }
+    # Emit DirectoryRef fragment for tree
+    [void]$sb.AppendLine('  </ComponentGroup>')
+    [void]$sb.AppendLine('  </Fragment>')
+    [void]$sb.AppendLine('  <Fragment>')
+    [void]$sb.AppendLine('    <DirectoryRef Id="INSTALLFOLDER">')
+    # Build child lists
+    $children = @{}
+    foreach($path in $dirIdMap.Keys){ if ($path -ne $publishDir){ $parent = Split-Path $path -Parent; if (-not $children.ContainsKey($parent)) { $children[$parent]=@() }; $children[$parent]+=$path } }
+    function Emit-Dir($path){
+        $id = $dirIdMap[$path]
+        $name = Split-Path $path -Leaf
+        [void]$sb.AppendLine("      <Directory Id=\"$id\" Name=\"$name\">")
+        if ($children.ContainsKey($path)) { foreach($c in $children[$path]){ Emit-Dir $c } }
+        # components for files directly in this directory
+        $filesHere = $allFiles | Where-Object { (Split-Path $_.FullName -Parent) -eq $path }
+        foreach($f in $filesHere){
+            $cmpId = 'Cmp_' + ([Guid]::NewGuid().ToString('N').Substring(0,8))
+            $relDirId = $id
+            $srcPath = $f.FullName
+            [void]$sb.AppendLine("        <Component Id=\"$cmpId\" Guid=\"*\" Directory=\"$relDirId\"><File Source=\"$srcPath\" KeyPath=\"yes\" /></Component>")
+        }
+        [void]$sb.AppendLine('      </Directory>')
+    }
+    if ($children.ContainsKey($publishDir)) { foreach($c in $children[$publishDir]){ Emit-Dir $c } }
+    # root-level files (already only if directory is publishDir)
+    $rootFiles = $allFiles | Where-Object { (Split-Path $_.FullName -Parent) -eq $publishDir }
+    foreach($f in $rootFiles){
+        $cmpId = 'Cmp_' + ([Guid]::NewGuid().ToString('N').Substring(0,8))
+        [void]$sb.AppendLine("      <Component Id=\"$cmpId\" Guid=\"*\" Directory=\"INSTALLFOLDER\"><File Source=\"$($f.FullName)\" KeyPath=\"yes\" /></Component>")
+    }
+    [void]$sb.AppendLine('    </DirectoryRef>')
+    [void]$sb.AppendLine('  </Fragment>')
+    [void]$sb.AppendLine('</Wix>')
+    $sb.ToString() | Set-Content -Encoding UTF8 $wxsPath
+    Write-Host '  (heat missing) Generated recursive AppFiles.wxs (includes subdirectories).' -ForegroundColor Yellow
     if ($SingleFileApi) {
         $apiSingleArgs = "-p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true"
     } else {
@@ -128,27 +181,65 @@ Push-Location (Split-Path $MyInvocation.MyCommand.Path)
 if ($hasHeatExe) {
     heat.exe dir $publishDir -cg AppFiles -dr INSTALLFOLDER -var var.PublishDir -srd -sreg -scom -ag -out AppFiles.wxs
 } else {
-    # Fallback: generate minimal AppFiles.wxs with root files only (no heat, no wix harvest)
-    $files = Get-ChildItem $publishDir -File
+    # Fallback: recursively include all files (including assert folder) building directory tree
     $wxsPath = Join-Path (Get-Location) 'AppFiles.wxs'
+    $allFiles = Get-ChildItem $publishDir -Recurse -File
+    $root = $publishDir.TrimEnd('\\')
+    # Collect distinct directories (including root)
+    $dirs = $allFiles | ForEach-Object { Split-Path $_.FullName -Parent } | Sort-Object -Unique
+    if ($dirs -notcontains $root) { $dirs = @($root) + $dirs }
+    # Map dir -> Id
+    $dirIds = @{}
+    $dirIds[$root] = 'INSTALLFOLDER'
+    foreach($d in ($dirs | Where-Object { $_ -ne $root })) {
+        $leaf = Split-Path $d -Leaf
+        $safe = ($leaf -replace '[^A-Za-z0-9_]','_')
+        if (-not $safe) { $safe = 'D' }
+        $base = 'Dir_' + $safe
+        $i=1; $id=$base
+        while($dirIds.Values -contains $id){ $i++; $id = $base + '_' + $i }
+        $dirIds[$d] = $id
+    }
+    # Build parent->children map
+    $children = @{}
+    foreach($d in $dirIds.Keys) { if ($d -ne $root) { $p = Split-Path $d -Parent; if (-not $children.ContainsKey($p)) { $children[$p]=@() }; $children[$p]+=$d } }
+    $componentRefs = New-Object System.Collections.Generic.List[string]
     $sb = [System.Text.StringBuilder]::new()
     [void]$sb.AppendLine('<?xml version="1.0" encoding="UTF-8"?>')
     [void]$sb.AppendLine('<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">')
+    # Fragment 1: DirectoryRef + Components
+    [void]$sb.AppendLine('  <Fragment>')
+    [void]$sb.AppendLine('    <DirectoryRef Id="INSTALLFOLDER">')
+    function Emit-Dir([string]$dir){
+        param()
+        $id = $dirIds[$dir]
+        if ($dir -ne $root) {
+            $name = Split-Path $dir -Leaf
+            [void]$sb.AppendLine("      <Directory Id=\"$id\" Name=\"$name\">")
+        }
+        # components for files directly in this dir
+        $filesHere = $allFiles | Where-Object { (Split-Path $_.FullName -Parent) -eq $dir }
+        foreach($f in $filesHere){
+            $cmpId = 'Cmp_' + ([Guid]::NewGuid().ToString('N').Substring(0,8))
+            $src = $f.FullName
+            [void]$sb.AppendLine("        <Component Id=\"$cmpId\" Guid=\"*\" Directory=\"$id\"><File Source=\"$src\" KeyPath=\"yes\" /></Component>")
+            $componentRefs.Add($cmpId) | Out-Null
+        }
+        if ($children.ContainsKey($dir)) { foreach($c in $children[$dir]) { Emit-Dir $c } }
+        if ($dir -ne $root) { [void]$sb.AppendLine('      </Directory>') }
+    }
+    Emit-Dir $root
+    [void]$sb.AppendLine('    </DirectoryRef>')
+    [void]$sb.AppendLine('  </Fragment>')
+    # Fragment 2: ComponentGroup referencing components
     [void]$sb.AppendLine('  <Fragment>')
     [void]$sb.AppendLine('    <ComponentGroup Id="AppFiles">')
-    foreach($f in $files){
-        $id = 'Cmp_' + ([System.Guid]::NewGuid().ToString('N').Substring(0,8))
-        $fileSource = '$(var.PublishDir)\' + $f.Name
-    [void]$sb.AppendLine(('      <Component Id="{0}" Guid="*" Directory="INSTALLFOLDER"><File Source="{1}" KeyPath="yes" /></Component>' -f $id,$fileSource))
-    }
+    foreach($cid in $componentRefs){ [void]$sb.AppendLine("      <ComponentRef Id=\"$cid\" />") }
     [void]$sb.AppendLine('    </ComponentGroup>')
-    [void]$sb.AppendLine('  </Fragment>')
-    [void]$sb.AppendLine('  <Fragment>')
-    [void]$sb.AppendLine('    <DirectoryRef Id="INSTALLFOLDER" />')
     [void]$sb.AppendLine('  </Fragment>')
     [void]$sb.AppendLine('</Wix>')
     $sb.ToString() | Set-Content -Encoding UTF8 $wxsPath
-    Write-Host '  (heat.exe missing) Generated minimal AppFiles.wxs (root files only).' -ForegroundColor Yellow
+    Write-Host '  (heat.exe missing) Generated recursive AppFiles.wxs (includes subdirectories).' -ForegroundColor Yellow
 }
 Pop-Location
 

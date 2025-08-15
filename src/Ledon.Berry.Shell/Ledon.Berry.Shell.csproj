@@ -20,10 +20,18 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <!-- Copy all files under assert to output & publish (e.g. embedded API, configs, native dlls) -->
   <ItemGroup>
     <Content Include="assert\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- Optional: exclude PDB in Release publish (uncomment if desired)
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <Content Remove="assert\\**\\*.pdb" />
+  </ItemGroup>
+  -->
 
 </Project>
