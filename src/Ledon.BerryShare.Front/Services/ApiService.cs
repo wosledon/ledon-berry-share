@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Ledon.BerryShare.Front.Auth;
 
 namespace Ledon.BerryShare.Front.Services
 {
@@ -19,12 +21,14 @@ namespace Ledon.BerryShare.Front.Services
         private readonly HttpClient _httpClient;
         private readonly ITokenProvider _tokenProvider;
         private readonly NavigationManager _navigationManager;
+        private readonly AuthenticationStateProvider _authStateProvider;
 
-        public ApiService(HttpClient httpClient, ITokenProvider tokenProvider, NavigationManager navigationManager)
+        public ApiService(HttpClient httpClient, ITokenProvider tokenProvider, NavigationManager navigationManager, AuthenticationStateProvider authStateProvider)
         {
             _httpClient = httpClient;
             _tokenProvider = tokenProvider;
             _navigationManager = navigationManager;
+            _authStateProvider = authStateProvider;
         }
 
         private async Task AddAuthHeaderAsync()
@@ -86,8 +90,19 @@ namespace Ledon.BerryShare.Front.Services
         {
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                await _tokenProvider.RemoveTokenAsync();
-                _navigationManager.NavigateTo("/login", true);
+                // await _tokenProvider.RemoveTokenAsync();
+                // if (_authStateProvider is CustomAuthenticationStateProvider custom)
+                // {
+                //     await custom.MarkUserAsLoggedOut();
+                // }
+                // _navigationManager.NavigateTo("/login", true);
+
+                // await _tokenProvider.RemoveTokenAsync();
+                // if (_authStateProvider is CustomAuthenticationStateProvider custom)
+                // {
+                //     await custom.MarkUserAsLoggedOut();
+                // }
+                _navigationManager.NavigateTo("/", true);
             }
         }
     }

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Ledon.Berry.Shell/Ledon.Berry.Shell.csproj" />
     <Project Path="src/Ledon.BerryShare.Api/Ledon.BerryShare.Api.csproj" Id="4971c52f-1d98-4a4c-8f5b-2132e1c8211e" />
     <Project Path="src/Ledon.BerryShare.Front/Ledon.BerryShare.Front.csproj" Id="b002fc1c-8c40-4c96-b75a-f212a1cea6f9" />
     <Project Path="src/Ledon.BerryShare.Shared/Ledon.BerryShare.Shared.csproj" Id="9b24146f-b7eb-4880-a0bf-a3844ae3f098" />

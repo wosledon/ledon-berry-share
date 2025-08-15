@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- <ProjectReference Include="..\Ledon.BerryShare.Front\Ledon.BerryShare.Front.csproj" /> -->
     <ProjectReference Include="..\Ledon.BerryShare.Front\Ledon.BerryShare.Front.csproj" />
     <ProjectReference Include="..\Ledon.BerryShare.Shared\Ledon.BerryShare.Shared.csproj" />
   </ItemGroup>

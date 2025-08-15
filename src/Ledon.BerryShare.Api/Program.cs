@@ -12,6 +12,25 @@ using Ledon.BerryShare.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 动态端口: 支持通过 --port 或环境变量 BERRY_API_PORT 指定；否则使用默认 0 (不改变默认行为)
+int? customPort = null;
+for (int i = 0; i < args.Length - 1; i++)
+{
+    if (string.Equals(args[i], "--port", StringComparison.OrdinalIgnoreCase) && int.TryParse(args[i + 1], out var p))
+    {
+        customPort = p;
+        break;
+    }
+}
+if (customPort == null && int.TryParse(Environment.GetEnvironmentVariable("BERRY_API_PORT"), out var envPort))
+{
+    customPort = envPort;
+}
+if (customPort is > 0)
+{
+    builder.WebHost.UseUrls($"http://127.0.0.1:{customPort}");
+}
+
 // EF Core Sqlite & 懒加载代理
 builder.Services.AddDbContext<BerryShareDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -107,7 +126,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.UseRouting();
+app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 app.Run();

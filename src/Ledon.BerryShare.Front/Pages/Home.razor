@@ -207,10 +207,10 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        var token = await TokenProvider.GetTokenAsync();
+        @* var token = await TokenProvider.GetTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
             NavigationManager.NavigateTo("/login", true);
-        }
+        } *@
     }
 }

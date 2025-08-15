@@ -2,10 +2,12 @@
 @using Ledon.BerryShare.Shared.Results
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
+@using Microsoft.AspNetCore.Components.Authorization
 @inject Ledon.BerryShare.Front.Services.ApiService ApiService
 @inject Ledon.BerryShare.Front.Services.ITokenProvider TokenProvider
 @inject NavigationManager NavigationManager
 @inject Ledon.BerryShare.Front.Services.ToastService ToastService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="login-bg">
     <div class="login-card animate-card">
@@ -42,9 +44,13 @@
             loginModel);
             if (result != null && !string.IsNullOrEmpty(result.Data?.Token))
             {
-                await TokenProvider.SetTokenAsync(result.Data.Token);
+                // 使用自定义 provider 通知登录成功
+                if (AuthStateProvider is Ledon.BerryShare.Front.Auth.CustomAuthenticationStateProvider custom)
+                {
+                    await custom.MarkUserAsAuthenticated(result.Data.Token);
+                }
                 await ToastService.ShowToastAsync("登录成功！", Ledon.BerryShare.Front.Services.ToastType.Info);
-                NavigationManager.NavigateTo("/", true);
+                NavigationManager.NavigateTo("/");
             }
             else
             {
