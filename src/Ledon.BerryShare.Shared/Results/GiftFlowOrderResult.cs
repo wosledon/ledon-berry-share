@@ -33,13 +33,13 @@ public class GiftFlowResult
 
     public decimal CommissionAmount => CommissionRate * Amount;
 
-    decimal CommissionRate => CommissionType?.CommissionRate ?? 0;  
+    decimal CommissionRate => CommissionType?.CommissionRate ?? 0;
 
-    public decimal TaxRateAmount => TaxRate * Amount;
+    public decimal TaxRateAmount => TaxRate * CommissionAmount;
 
     decimal TaxRate => CommissionType?.TaxRate ?? 0;
 
-    public decimal FinalAmount =>  CommissionAmount - TaxRateAmount;
+    public decimal FinalAmount => CommissionAmount - TaxRateAmount;
 
     public Guid UserId { get; set; }
     // 关联的用户
@@ -48,9 +48,9 @@ public class GiftFlowResult
     public Guid CommissionTypeId { get; set; }
     // 关联的分成类型
     public CommissionTypeResult? CommissionType { get; set; }
-    
+
     public Guid? GiftFlowTypeId { get; set; }
     // 关联的流水类型
     public GiftFlowTypeResult? GiftFlowType { get; set; }
-    
+
 }

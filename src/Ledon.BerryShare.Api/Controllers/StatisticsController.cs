@@ -1,7 +1,7 @@
 using Ledon.BerryShare.Api.Services;
-using Ledon.BerryShare.Shared.Results;
-using Ledon.BerryShare.Shared.Entities;
 using Ledon.BerryShare.Shared;
+using Ledon.BerryShare.Shared.Entities;
+using Ledon.BerryShare.Shared.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,7 +31,8 @@ public class StatisticsController : ApiControllerBase
             query = query.Where(o => o.OrderAt < endDate.Value.AddDays(1));
         var orderStats = await query
             .GroupBy(o => 1)
-            .Select(g => new {
+            .Select(g => new
+            {
                 TotalOrders = g.Count(),
                 TotalAmount = g.Sum(o => o.Amount),
                 ActiveGuilds = g.Select(o => o.GuildId).Distinct().Count()
@@ -48,7 +49,8 @@ public class StatisticsController : ApiControllerBase
             giftFlowQuery = giftFlowQuery.Where(f => f.FlowAt < endDate.Value.AddDays(1));
         var giftFlowStats = await giftFlowQuery
             .GroupBy(f => 1)
-            .Select(g => new {
+            .Select(g => new
+            {
                 // 只统计IncludeInTotal=true的Amount
                 TotalAmount = g.Where(f => f.CommissionType != null && f.CommissionType.IncludeInTotal).Sum(f => f.Amount),
                 // 抽成和税都统计所有Amount
@@ -195,8 +197,8 @@ public class StatisticsController : ApiControllerBase
                 UserName = g.Key.UserName,
                 TotalAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Sum(f => f.Amount),
                 TotalCommission = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate),
-                TotalTax = g.Sum(f => f.Amount * f.CommissionType!.TaxRate),
-                FinalAmount = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate - f.Amount * f.CommissionType!.TaxRate),
+                TotalTax = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate * f.CommissionType!.TaxRate),
+                FinalAmount = g.Sum(f => f.Amount * f.CommissionType!.CommissionRate - f.Amount * f.CommissionType!.CommissionRate * f.CommissionType!.TaxRate),
                 OrderCount = g.Count(),
                 AvgOrderAmount = g.Where(f => f.CommissionType!.IncludeInTotal).Any() ? g.Where(f => f.CommissionType!.IncludeInTotal).Average(f => f.Amount) : 0
             })
@@ -242,7 +244,7 @@ public class StatisticsController : ApiControllerBase
         return Ok(new BerryResult<List<GuildComparisonResult>>
         {
             Code = BerryResult.StatusCodeEnum.Success,
-            Data = guildData.OrderByDescending(x=>x.TotalAmount).ToList()
+            Data = guildData.OrderByDescending(x => x.TotalAmount).ToList()
         });
     }
 
@@ -263,9 +265,9 @@ public class StatisticsController : ApiControllerBase
             .Include(f => f.CommissionType)
             .Select(f => new { f.Amount, f.CommissionType!.CommissionRate, f.CommissionType.TaxRate, f.CommissionType.IncludeInTotal })
             .ToListAsync();
-        var totalAmount = revenueData.Where(x=>x.IncludeInTotal).Sum(x => x.Amount);
+        var totalAmount = revenueData.Where(x => x.IncludeInTotal).Sum(x => x.Amount);
         var totalCommission = revenueData.Sum(x => x.Amount * x.CommissionRate);
-        var totalTax = revenueData.Sum(x => x.Amount * x.TaxRate);
+        var totalTax = revenueData.Sum(x => x.Amount * x.CommissionRate * x.TaxRate);
         var finalAmount = totalCommission - totalTax;
         var result = new RevenueAnalysisResult
         {
